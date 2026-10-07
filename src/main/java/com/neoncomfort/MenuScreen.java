@@ -9,6 +9,8 @@ import java.util.List;
 public class MenuScreen extends Screen {
     private static final int BTN_W = 140, BTN_H = 22, GAP = 5;
 
+    private int page = 0;
+
     public MenuScreen() {
         super(Text.literal("NeonComfort"));
     }
@@ -18,11 +20,15 @@ public class MenuScreen extends Screen {
     }
     private int panelW() { return BTN_W * cols() + GAP * (cols() + 1); }
     private int panelH() {
-        int rows = (Modules.ALL.size() + cols() - 1) / cols();
+        int rows = (Modules.PAGE1.size() + cols() - 1) / cols();
         return 40 + rows * (BTN_H + GAP) + GAP;
     }
     private int px() { return (width - panelW()) / 2; }
     private int py() { return (height - panelH()) / 2; }
+
+    private static final int PB_W = 56, PB_H = 14;
+    private int pageBtnX() { return px() + panelW() - PB_W - 6; }
+    private int pageBtnY() { return py() + 6; }
 
     private int btnX(int i) { return px() + GAP + (i % cols()) * (BTN_W + GAP); }
     private int btnY(int i) { return py() + 40 + (i / cols()) * (BTN_H + GAP); }
@@ -42,11 +48,18 @@ public class MenuScreen extends Screen {
         ctx.fill(x - 2, y - 2, x + w + 2, y + h + 2, border);
         ctx.fill(x, y, x + w, y + h, Theme.PANEL);
 
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("NeonComfort"), width / 2, y + 8, Theme.TEXT);
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("NeonComfort v" + NeonComfort.VERSION), width / 2, y + 8, Theme.TEXT);
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("tap to toggle / change"),
                 width / 2, y + 22, Theme.TEXT_DIM);
 
-        List<Modules.Module> list = Modules.ALL;
+        // кнопка страницы (справа вверху)
+        int pbx = pageBtnX(), pby = pageBtnY();
+        boolean ph = mouseX >= pbx && mouseX < pbx + PB_W && mouseY >= pby && mouseY < pby + PB_H;
+        ctx.fill(pbx, pby, pbx + PB_W, pby + PB_H, ph ? Theme.accent() : Theme.accent2());
+        String pl = "Page " + (page + 1) + "/" + Modules.PAGES.size();
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(pl), pbx + PB_W / 2, pby + 3, Theme.TEXT);
+
+        List<Modules.Module> list = Modules.PAGES.get(page);
         for (int i = 0; i < list.size(); i++) {
             Modules.Module m = list.get(i);
             int bx = btnX(i), by = btnY(i);
@@ -68,12 +81,17 @@ public class MenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        List<Modules.Module> list = Modules.ALL;
+        if (mx >= pageBtnX() && mx < pageBtnX() + PB_W && my >= pageBtnY() && my < pageBtnY() + PB_H) {
+            page = (page + 1) % Modules.PAGES.size();
+            return true;
+        }
+        List<Modules.Module> list = Modules.PAGES.get(page);
         for (int i = 0; i < list.size(); i++) {
             int bx = btnX(i), by = btnY(i);
             if (mx >= bx && mx < bx + BTN_W && my >= by && my < by + BTN_H) {
                 list.get(i).click();
                 Config.save();
+                if (list.get(i) == Modules.HIT_SOUND) NeonComfort.playHitSound();
                 return true;
             }
         }

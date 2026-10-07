@@ -54,26 +54,52 @@ public final class Modules {
     public static final Module NEARBY_ARMOR = new Module("Nearby Armor", true);
 
     // --- визуал ---
-    public static final Module CROSSHAIR  = Module.option("Crosshair", true,
-            "OFF", "Dot", "Cross", "Plus", "Square");
+    // 0 = Thin (ванильный прицел скрыт ресурсом мода), последний = None (без прицела)
+    public static final Module CROSSHAIR  = Module.option("Crosshair", false,
+            "Thin", "Dot", "Cross", "Plus", "Square",
+            "Circle", "Diamond", "X", "Corners", "Plus Dot", "Ring Dot",
+            "T-Shape", "Big Ring", "Brackets", "Star", "None");
     public static final Module CROSSHAIR_COLOR = Module.option("Crosshair Color", false, menuPlus());
     public static final Module TRAIL = Module.option("Trail", true, trailValues());
     public static final Module MENU_COLOR = Module.option("Menu Color", false, Theme.COLOR_NAMES);
     public static final Module NO_HURT_CAM = new Module("No Hurt Cam", false);
     public static final Module LOW_FIRE   = new Module("Low Fire", false);
     public static final Module HIT_SOUND  = Module.option("Hit Sound", true,
-            "OFF", "Orb", "Bell", "Pling", "Ding", "Levelup");
+            "OFF", "Orb", "Bell", "Pling", "Ding", "Levelup", "Chime", "Crit");
     public static final Module WEATHER    = Module.option("Weather", true,
             "Default", "Clear", "Rain", "Thunder");
 
-    public static final List<Module> ALL = List.of(
+    // --- страница 2 ---
+    public static final Module TWILIGHT = Module.option("Twilight", true,
+            "OFF", "Light", "Medium", "Strong");
+    public static final Module CROSSHAIR_SIZE = Module.option("Crosshair Size", false,
+            "Normal", "Small", "Big", "Huge");
+    public static final Module CROSSHAIR_OUTLINE = new Module("Crosshair Outline", false);
+    public static final Module HIT_COLOR = Module.option("Hit Color", true, trailValues());
+    public static final Module HIT_VOLUME = Module.option("Hit Volume", false,
+            "Normal", "Quiet", "Loud");
+
+    public static final List<Module> PAGE1 = List.of(
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
+    public static final List<Module> PAGE2 = List.of(
+            TWILIGHT, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_COLOR, HIT_VOLUME);
+    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2);
+
+    /** все модули (для сохранения конфига) */
+    public static final List<Module> ALL;
+    static {
+        List<Module> all = new java.util.ArrayList<>(PAGE1);
+        all.addAll(PAGE2);
+        ALL = java.util.Collections.unmodifiableList(all);
+    }
 
     private static String[] menuPlus() {
-        String[] a = new String[Theme.COLOR_NAMES.length + 1];
+        int n = Theme.COLOR_NAMES.length;
+        String[] a = new String[n + 2];
         a[0] = "Menu";
-        System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, Theme.COLOR_NAMES.length);
+        System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
+        a[n + 1] = "Rainbow";
         return a;
     }
 

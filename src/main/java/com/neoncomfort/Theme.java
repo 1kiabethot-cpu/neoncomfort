@@ -17,8 +17,11 @@ public final class Theme {
     public static int colorRgb(int i) { return COLORS[i % COLORS.length]; }
 
     /** плавно меняющийся цвет радуги (RGB без альфы) */
-    public static int rainbowRgb() {
-        float h6 = (System.currentTimeMillis() % 3000L) / 3000f * 6f;
+    public static int rainbowRgb() { return rainbowRgb(0L); }
+
+    /** радуга со сдвигом по времени (для разных цветов в хвосте) */
+    public static int rainbowRgb(long shiftMs) {
+        float h6 = ((System.currentTimeMillis() + shiftMs) % 3000L + 3000L) % 3000L / 3000f * 6f;
         int i = (int) h6;
         float f = h6 - i;
         int t = (int) (255 * f), q = 255 - t;
@@ -46,7 +49,9 @@ public final class Theme {
     /** colour of the custom crosshair (0 = same as menu) */
     public static int crosshairColor() {
         int i = Modules.CROSSHAIR_COLOR.index;
-        return i <= 0 ? accent() : 0xFF000000 | COLORS[(i - 1) % COLORS.length];
+        if (i <= 0) return accent();
+        if (i > COLORS.length) return 0xFF000000 | rainbowRgb();
+        return 0xFF000000 | COLORS[i - 1];
     }
 
     /** darker accent for enabled buttons */
