@@ -79,11 +79,14 @@ public final class Modules {
     public static final Module HIT_VOLUME = Module.option("Hit Volume", false,
             "Normal", "Quiet", "Loud");
 
+    public static final Module FPS_BOOST = Module.option("FPS Boost", true,
+            "OFF", "Balanced", "Max");
+
     public static final List<Module> PAGE1 = List.of(
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
     public static final List<Module> PAGE2 = List.of(
-            TWILIGHT, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_COLOR, HIT_VOLUME);
+            TWILIGHT, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_COLOR, HIT_VOLUME, FPS_BOOST);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2);
 
     /** все модули (для сохранения конфига) */

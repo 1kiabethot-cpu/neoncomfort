@@ -92,6 +92,7 @@ public class MenuScreen extends Screen {
                 list.get(i).click();
                 Config.save();
                 if (list.get(i) == Modules.HIT_SOUND) NeonComfort.playHitSound();
+                if (list.get(i) == Modules.FPS_BOOST) Performance.apply();
                 return true;
             }
         }
