@@ -27,7 +27,7 @@ import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "1.3.0";
+    public static final String VERSION = "1.3.1";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -93,6 +93,10 @@ public class NeonComfort implements ClientModInitializer {
         handleNoHurtCam(p);
     }
 
+    // количество частиц: Medium, Less, More
+    private static final int[] TRAIL_COUNTS = { 5, 2, 9 };
+    private static final int[] HIT_COUNTS   = { 14, 6, 28 };
+
     public static void playHitSound() {
         int i = Modules.HIT_SOUND.index;
         if (i <= 0 || i >= HIT_IDS.length) return;
@@ -109,7 +113,8 @@ public class NeonComfort implements ClientModInitializer {
         if (mode == 0 || mc.world == null) return;
         boolean rainbow = (mode == Theme.colorCount() + 1);
         double cx = e.getX(), cy = e.getY() + e.getHeight() * 0.6, cz = e.getZ();
-        for (int i = 0; i < 14; i++) {
+        int cnt = HIT_COUNTS[Modules.HIT_AMOUNT.index % HIT_COUNTS.length];
+        for (int i = 0; i < cnt; i++) {
             int rgb = rainbow ? Theme.rainbowRgb(i * 200L) : Theme.colorRgb(mode - 1);
             DustParticleEffect fx = new DustParticleEffect(rgb, 1.2f);
             double ox = (Math.random() - 0.5) * 0.6, oy = (Math.random() - 0.5) * 0.6, oz = (Math.random() - 0.5) * 0.6;
@@ -131,7 +136,7 @@ public class NeonComfort implements ClientModInitializer {
         if (sp < 0.03) return;
 
         boolean rainbow = (mode == Theme.colorCount() + 1);
-        int n = 5;
+        int n = TRAIL_COUNTS[Modules.TRAIL_AMOUNT.index % TRAIL_COUNTS.length];
         for (int i = 0; i < n; i++) {
             double t = i / (double) n;
             int rgb = rainbow ? Theme.rainbowRgb(i * 120L) : Theme.colorRgb(mode - 1);
