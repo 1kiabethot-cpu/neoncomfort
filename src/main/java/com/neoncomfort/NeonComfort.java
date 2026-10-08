@@ -28,7 +28,9 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
-public class NeonComfort implements ClientModInitializer {
+public class NeonComfort implements ClientModInitializer { private void handleNoHurtCam(ClientPlayerEntity p) {
+        if (Modules.NO_HURT_CAM.enabled && p.hurtTime > 0) p.hurtTime = 0;
+}
     public static final String VERSION = "1.5.0";
     private static final String CATEGORY = "category.neoncomfort";
 
