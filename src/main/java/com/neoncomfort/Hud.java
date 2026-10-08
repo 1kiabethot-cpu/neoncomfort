@@ -30,7 +30,7 @@ public final class Hud {
         if (player == null || mc.options.hudHidden) return;
         TextRenderer tr = mc.textRenderer;
 
-        if (Modules.TWILIGHT.index > 0) twilight(ctx, mc, Modules.TWILIGHT.index);
+        if (Modules.TWILIGHT.index > 0) twilight(ctx, mc, Modules.TWILIGHT.index, Modules.TWILIGHT_STYLE.index);
         if (Modules.CROSSHAIR.index < Modules.CROSSHAIR.values.length - 1 && mc.currentScreen == null
                 && mc.options.getPerspective().isFirstPerson()) crosshair(ctx, mc);
         if (Modules.WATERMARK.enabled) watermark(ctx, mc, tr, player);
@@ -179,15 +179,36 @@ public final class Hud {
         }
     }
 
-    /** Twilight: вечерний градиент поверх экрана (без нагрузки на FPS). */
-    private static void twilight(DrawContext ctx, MinecraftClient mc, int level) {
+    /** Twilight: градиент поверх экрана (без нагрузки на FPS). style: 0 Sunset, 1 Pink, 2 Aurora, 3 Violet, 4 Gold */
+    private static void twilight(DrawContext ctx, MinecraftClient mc, int level, int style) {
         int w = mc.getWindow().getScaledWidth(), h = mc.getWindow().getScaledHeight();
         int a = level == 1 ? 0x28 : level == 2 ? 0x44 : 0x60;
-        int top = (a << 24) | 0x4A2A8C;
-        int mid = (a << 24) | 0xFF8A3D;
-        int bot = (a << 24) | 0x2A1250;
-        ctx.fillGradient(0, 0, w, h / 2, top, mid);
-        ctx.fillGradient(0, h / 2, w, h, mid, bot);
+        if (style == 2) { aurora(ctx, w, h, a); return; }
+        int top, mid, bot;
+        switch (style) {
+            case 1 -> { top = 0xFFB6C8; mid = 0xFF8FB0; bot = 0x5A2A50; }
+            case 3 -> { top = 0x1B1464; mid = 0x7A3CC8; bot = 0x120A3A; }
+            case 4 -> { top = 0xFF9A3C; mid = 0xFFD27A; bot = 0x4A2A10; }
+            default -> { top = 0x4A2A8C; mid = 0xFF8A3D; bot = 0x2A1250; }
+        }
+        ctx.fillGradient(0, 0, w, h / 2, (a << 24) | top, (a << 24) | mid);
+        ctx.fillGradient(0, h / 2, w, h, (a << 24) | mid, (a << 24) | bot);
+    }
+
+    /** Северное сияние: тёмный фон и переливающиеся полосы сверху. */
+    private static void aurora(DrawContext ctx, int w, int h, int a) {
+        ctx.fill(0, 0, w, h, ((a / 2) << 24) | 0x0A1030);
+        double t = System.currentTimeMillis() / 1000.0;
+        for (int i = 0; i < 5; i++) {
+            int y0 = (int) (h * (0.02 + i * 0.08));
+            int y1 = y0 + (int) (h * 0.16);
+            int ym = (y0 + y1) / 2;
+            double k = 0.35 + 0.65 * Math.abs(Math.sin(t * 0.6 + i * 1.3));
+            int al = (int) (a * k);
+            int rgb = (i % 2 == 0) ? 0x3CFFA0 : 0xB070FF;
+            ctx.fillGradient(0, y0, w, ym, rgb, (al << 24) | rgb);
+            ctx.fillGradient(0, ym, w, y1, (al << 24) | rgb, rgb);
+        }
     }
 
     /** общий масштаб HUD (0.8 = на 20% меньше) */

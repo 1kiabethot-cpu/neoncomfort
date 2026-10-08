@@ -83,6 +83,12 @@ public final class Modules {
             "Medium", "Less", "More");
     public static final Module HIT_AMOUNT = Module.option("Hit Amount", false,
             "Medium", "Less", "More");
+    public static final Module TWILIGHT_STYLE = Module.option("Twilight Style", false,
+            "Sunset", "Pink", "Aurora", "Violet", "Gold");
+    public static final Module HIT_EFFECT = Module.option("Hit Effect", false,
+            "Dust", "Crit", "Magic", "Star", "Fire");
+    public static final Module TRAIL_EFFECT = Module.option("Trail Effect", false,
+            "Dust", "Crit", "Magic", "Star", "Fire");
     public static final Module FPS_BOOST = Module.option("FPS Boost", true,
             "OFF", "Balanced", "Max");
 
@@ -90,7 +96,8 @@ public final class Modules {
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
     public static final List<Module> PAGE2 = List.of(
-            TWILIGHT, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_COLOR, HIT_VOLUME, TRAIL_AMOUNT, HIT_AMOUNT, FPS_BOOST);
+            TWILIGHT, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_COLOR, HIT_VOLUME, TRAIL_AMOUNT, HIT_AMOUNT,
+            TWILIGHT_STYLE, HIT_EFFECT, TRAIL_EFFECT, FPS_BOOST);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2);
 
     /** все модули (для сохранения конфига) */

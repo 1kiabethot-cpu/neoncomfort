@@ -20,6 +20,8 @@ import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.particle.DustParticleEffect;
+import net.minecraft.particle.ParticleEffect;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
@@ -27,7 +29,7 @@ import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "1.3.1";
+    public static final String VERSION = "1.4.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -97,6 +99,15 @@ public class NeonComfort implements ClientModInitializer {
     private static final int[] TRAIL_COUNTS = { 5, 2, 9 };
     private static final int[] HIT_COUNTS   = { 14, 6, 28 };
 
+    /** 0 Dust (цветной), 1 Crit, 2 Magic, 3 Star, 4 Fire */
+    private static ParticleEffect effect(int style, int rgb, float scale) {
+        if (style == 1) return ParticleTypes.CRIT;
+        if (style == 2) return ParticleTypes.ENCHANTED_HIT;
+        if (style == 3) return ParticleTypes.END_ROD;
+        if (style == 4) return ParticleTypes.FLAME;
+        return new DustParticleEffect(rgb, scale);
+    }
+
     public static void playHitSound() {
         int i = Modules.HIT_SOUND.index;
         if (i <= 0 || i >= HIT_IDS.length) return;
@@ -116,7 +127,7 @@ public class NeonComfort implements ClientModInitializer {
         int cnt = HIT_COUNTS[Modules.HIT_AMOUNT.index % HIT_COUNTS.length];
         for (int i = 0; i < cnt; i++) {
             int rgb = rainbow ? Theme.rainbowRgb(i * 200L) : Theme.colorRgb(mode - 1);
-            DustParticleEffect fx = new DustParticleEffect(rgb, 1.2f);
+            ParticleEffect fx = effect(Modules.HIT_EFFECT.index, rgb, 1.2f);
             double ox = (Math.random() - 0.5) * 0.6, oy = (Math.random() - 0.5) * 0.6, oz = (Math.random() - 0.5) * 0.6;
             mc.world.addParticle(fx, cx + ox, cy + oy, cz + oz, ox * 0.4, oy * 0.4 + 0.05, oz * 0.4);
         }
@@ -140,7 +151,7 @@ public class NeonComfort implements ClientModInitializer {
         for (int i = 0; i < n; i++) {
             double t = i / (double) n;
             int rgb = rainbow ? Theme.rainbowRgb(i * 120L) : Theme.colorRgb(mode - 1);
-            DustParticleEffect fx = new DustParticleEffect(rgb, 1.4f);
+            ParticleEffect fx = effect(Modules.TRAIL_EFFECT.index, rgb, 1.4f);
             double x = p.prevX + dx * t + (Math.random() - 0.5) * 0.5;
             double y = p.prevY + dy * t + 0.1 + Math.random() * 0.5;
             double z = p.prevZ + dz * t + (Math.random() - 0.5) * 0.5;
