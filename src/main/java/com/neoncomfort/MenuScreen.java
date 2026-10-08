@@ -15,12 +15,19 @@ public class MenuScreen extends Screen {
         super(Text.literal("NeonComfort"));
     }
 
+    private boolean simple() { return Modules.MENU_SIMPLE.enabled; }
+
+    private List<Modules.Module> cur() {
+        return simple() ? Modules.SIMPLE : Modules.PAGES.get(page);
+    }
+
     private int cols() {
         return Math.max(2, Math.min(3, (width - 20) / (BTN_W + GAP)));
     }
     private int panelW() { return BTN_W * cols() + GAP * (cols() + 1); }
     private int panelH() {
-        int rows = (Modules.PAGE1.size() + cols() - 1) / cols();
+        int n = simple() ? Modules.SIMPLE.size() : Modules.PAGE1.size();
+        int rows = (n + cols() - 1) / cols();
         return 40 + rows * (BTN_H + GAP) + GAP;
     }
     private int px() { return (width - panelW()) / 2; }
@@ -29,6 +36,10 @@ public class MenuScreen extends Screen {
     private static final int PB_W = 56, PB_H = 14;
     private int pageBtnX() { return px() + panelW() - PB_W - 6; }
     private int pageBtnY() { return py() + 6; }
+
+    private static final int MB_W = 84;
+    private int modeBtnX() { return px() + 6; }
+    private int modeBtnY() { return py() + 6; }
 
     private int btnX(int i) { return px() + GAP + (i % cols()) * (BTN_W + GAP); }
     private int btnY(int i) { return py() + 40 + (i / cols()) * (BTN_H + GAP); }
@@ -52,14 +63,23 @@ public class MenuScreen extends Screen {
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("tap to toggle / change"),
                 width / 2, y + 22, Theme.TEXT_DIM);
 
-        // кнопка страницы (справа вверху)
-        int pbx = pageBtnX(), pby = pageBtnY();
-        boolean ph = mouseX >= pbx && mouseX < pbx + PB_W && mouseY >= pby && mouseY < pby + PB_H;
-        ctx.fill(pbx, pby, pbx + PB_W, pby + PB_H, ph ? Theme.accent() : Theme.accent2());
-        String pl = "Page " + (page + 1) + "/" + Modules.PAGES.size();
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(pl), pbx + PB_W / 2, pby + 3, Theme.TEXT);
+        // кнопка режима меню (слева вверху): Simple / Full
+        int mbx = modeBtnX(), mby = modeBtnY();
+        boolean mh = mouseX >= mbx && mouseX < mbx + MB_W && mouseY >= mby && mouseY < mby + PB_H;
+        ctx.fill(mbx, mby, mbx + MB_W, mby + PB_H, mh ? Theme.accent() : Theme.accent2());
+        String ml = simple() ? "Menu: Simple" : "Menu: Full";
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(ml), mbx + MB_W / 2, mby + 3, Theme.TEXT);
 
-        List<Modules.Module> list = Modules.PAGES.get(page);
+        // кнопка страницы (справа вверху), только в полном меню
+        if (!simple()) {
+            int pbx = pageBtnX(), pby = pageBtnY();
+            boolean ph = mouseX >= pbx && mouseX < pbx + PB_W && mouseY >= pby && mouseY < pby + PB_H;
+            ctx.fill(pbx, pby, pbx + PB_W, pby + PB_H, ph ? Theme.accent() : Theme.accent2());
+            String pl = "Page " + (page + 1) + "/" + Modules.PAGES.size();
+            ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(pl), pbx + PB_W / 2, pby + 3, Theme.TEXT);
+        }
+
+        List<Modules.Module> list = cur();
         for (int i = 0; i < list.size(); i++) {
             Modules.Module m = list.get(i);
             int bx = btnX(i), by = btnY(i);
@@ -81,11 +101,17 @@ public class MenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
-        if (mx >= pageBtnX() && mx < pageBtnX() + PB_W && my >= pageBtnY() && my < pageBtnY() + PB_H) {
+        if (mx >= modeBtnX() && mx < modeBtnX() + MB_W && my >= modeBtnY() && my < modeBtnY() + PB_H) {
+            Modules.MENU_SIMPLE.enabled = !Modules.MENU_SIMPLE.enabled;
+            page = 0;
+            Config.save();
+            return true;
+        }
+        if (!simple() && mx >= pageBtnX() && mx < pageBtnX() + PB_W && my >= pageBtnY() && my < pageBtnY() + PB_H) {
             page = (page + 1) % Modules.PAGES.size();
             return true;
         }
-        List<Modules.Module> list = Modules.PAGES.get(page);
+        List<Modules.Module> list = cur();
         for (int i = 0; i < list.size(); i++) {
             int bx = btnX(i), by = btnY(i);
             if (mx >= bx && mx < bx + BTN_W && my >= by && my < by + BTN_H) {

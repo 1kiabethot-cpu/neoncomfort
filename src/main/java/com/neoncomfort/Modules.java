@@ -91,6 +91,8 @@ public final class Modules {
     public static final Module TRAIL_COLOR2 = Module.option("Trail Color 2", true, color2Values());
     public static final Module HIT_GLOW = Module.option("Hit Glow", true, "OFF", "Soft", "Bright", "Spark");
     public static final Module TRAIL_GLOW = Module.option("Trail Glow", true, "OFF", "Soft", "Bright", "Spark");
+    public static final Module HIT_EFFECT_COLOR = Module.option("Hit FX Color", false, origValues());
+    public static final Module TRAIL_EFFECT_COLOR = Module.option("Trail FX Color", false, origValues());
     public static final Module SCREEN_FX = Module.option("Screen FX", true,
             "OFF", "Snow", "Sparkle", "Firefly", "Rain", "Bubbles", "Embers", "Petals");
     public static final Module SCREEN_FX_AMOUNT = Module.option("Screen FX Amount", false,
@@ -105,23 +107,33 @@ public final class Modules {
     public static final List<Module> PAGE2 = List.of(
             TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST);
     public static final List<Module> PAGE3 = List.of(
-            HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, TRAIL_COLOR2,
-            TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW);
+            HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR,
+            TRAIL_COLOR2, TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW, TRAIL_EFFECT_COLOR);
     public static final List<Module> PAGE4 = List.of(
             SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4);
+
+    /** Упрощённое меню: только самое нужное на одной странице */
+    public static final Module MENU_SIMPLE = new Module("Simple Menu", false);
+    public static final List<Module> SIMPLE = List.of(
+            CROSSHAIR, CROSSHAIR_COLOR, HIT_SOUND,
+            HIT_COLOR, HIT_EFFECT, TRAIL,
+            TRAIL_EFFECT, TWILIGHT, SCREEN_FX,
+            FPS_BOOST, FULLBRIGHT, ZOOM);
 
     /** все модули (для сохранения конфига) */
     public static final List<Module> ALL;
     static {
         List<Module> all = new java.util.ArrayList<>();
         for (List<Module> pg : PAGES) all.addAll(pg);
+        all.add(MENU_SIMPLE);
         ALL = java.util.Collections.unmodifiableList(all);
     }
 
     private static String[] effectNames() {
         return new String[] { "Dust", "Crit", "Magic", "Star", "Fire", "Soul", "Spark",
-                "Heart", "Note", "Snow", "Glow", "Totem", "Rune", "Happy" };
+                "Heart", "Note", "Snow", "Glow", "Totem", "Rune", "Happy",
+                "D-Heart", "D-Star", "D-Ring", "D-Spiral" };
     }
 
     private static String[] color2Values() {
@@ -129,6 +141,16 @@ public final class Modules {
         String[] a = new String[n + 1];
         a[0] = "OFF";
         System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
+        return a;
+    }
+
+    /** Цвет самого эффекта: Original = как в игре, дальше цвета и Rainbow */
+    private static String[] origValues() {
+        int n = Theme.COLOR_NAMES.length;
+        String[] a = new String[n + 2];
+        a[0] = "Original";
+        System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
+        a[n + 1] = "Rainbow";
         return a;
     }
 

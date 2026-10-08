@@ -28,10 +28,8 @@ import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
-public class NeonComfort implements ClientModInitializer { private void handleNoHurtCam(ClientPlayerEntity p) {
-        if (Modules.NO_HURT_CAM.enabled && p.hurtTime > 0) p.hurtTime = 0;
-}
-    public static final String VERSION = "1.5.0";
+public class NeonComfort implements ClientModInitializer {
+    public static final String VERSION = "1.7.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -102,7 +100,7 @@ public class NeonComfort implements ClientModInitializer { private void handleNo
     private static final int[] HIT_COUNTS   = { 14, 6, 28 };
 
     /** Стили: 0 Dust (цветной), дальше готовые частицы игры. */
-    private static ParticleEffect effect(int style, int rgb, float scale) {
+    static ParticleEffect effect(int style, int rgb, float scale) {
         switch (style) {
             case 1: return ParticleTypes.CRIT;
             case 2: return ParticleTypes.ENCHANTED_HIT;
@@ -153,19 +151,103 @@ public class NeonComfort implements ClientModInitializer { private void handleNo
                 .play(PositionedSoundInstance.master(ev, HIT_PITCH[i], vol));
     }
 
-    /** Частицы в месте удара: эффект, цвет (можно смешать два) и светящаяся добавка. */
+    /** Формы из цветных частиц-пыли: 0 Heart, 1 Star, 2 Ring, 3 Spiral (координаты в плоскости, радиус ~0.5). */
+    private static double[][] shape2d(int kind) {
+        double[][] pts;
+        if (kind == 0) {                                   // Heart
+            pts = new double[26][2];
+            for (int i = 0; i < pts.length; i++) {
+                double t = Math.PI * 2 * i / pts.length;
+                double hx = 16 * Math.pow(Math.sin(t), 3);
+                double hy = 13 * Math.cos(t) - 5 * Math.cos(2 * t) - 2 * Math.cos(3 * t) - Math.cos(4 * t);
+                pts[i][0] = hx / 32.0;
+                pts[i][1] = (hy + 2) / 32.0;
+            }
+        } else if (kind == 1) {                            // Star (5 лучей)
+            pts = new double[30][2];
+            for (int i = 0; i < pts.length; i++) {
+                double f = i / 3.0;                        // 10 вершин, по 3 точки на ребро
+                int v = (int) Math.floor(f);
+                double u = f - v;
+                double a1 = Math.PI * 2 * v / 10.0 - Math.PI / 2;
+                double a2 = Math.PI * 2 * (v + 1) / 10.0 - Math.PI / 2;
+                double r1 = (v % 2 == 0) ? 0.55 : 0.22;
+                double r2 = ((v + 1) % 2 == 0) ? 0.55 : 0.22;
+                pts[i][0] = (Math.cos(a1) * r1) * (1 - u) + (Math.cos(a2) * r2) * u;
+                pts[i][1] = -((Math.sin(a1) * r1) * (1 - u) + (Math.sin(a2) * r2) * u);
+            }
+        } else if (kind == 2) {                            // Ring
+            pts = new double[24][2];
+            for (int i = 0; i < pts.length; i++) {
+                double t = Math.PI * 2 * i / pts.length;
+                pts[i][0] = Math.cos(t) * 0.5;
+                pts[i][1] = Math.sin(t) * 0.5;
+            }
+        } else {                                           // Spiral
+            pts = new double[28][2];
+            for (int i = 0; i < pts.length; i++) {
+                double t = Math.PI * 4 * i / pts.length;
+                double r = 0.5 * i / pts.length;
+                pts[i][0] = Math.cos(t) * r;
+                pts[i][1] = Math.sin(t) * r;
+            }
+        }
+        return pts;
+    }
+
+    /** Фигура из цветной пыли лицом к игроку. push = сдвиг к игроку (для удара). */
+    private static void spawnShape(MinecraftClient mc, int kind, double cx, double cy, double cz,
+                                   int mode, int mode2, double push) {
+        if (mc.player == null || mc.world == null) return;
+        double yaw = Math.toRadians(mc.player.getYaw());
+        double rx = -Math.cos(yaw), rz = -Math.sin(yaw);       // вправо от взгляда игрока
+        double fx = -Math.sin(yaw), fz = Math.cos(yaw);        // вперёд
+        double[][] pts = shape2d(kind);
+        for (int i = 0; i < pts.length; i++) {
+            double t = i / (double) pts.length;
+            int rgb = pickColor(mode, mode2, i * 60L, t);
+            double x = cx + rx * pts[i][0] - fx * push;
+            double y = cy + pts[i][1];
+            double z = cz + rz * pts[i][0] - fz * push;
+            mc.world.addParticle(new DustParticleEffect(rgb, 0.8f), x, y, z, 0, 0, 0);
+        }
+    }
+
+    /**
+     * Удар: сам эффект (цвет «Hit FX Color», Original = как в игре) + отдельный слой цветной пыли
+     * («Hit Color» / «Hit Color 2»). Например: белая звезда + красная пыль, или наоборот.
+     */
     private static void spawnHitParticles(Entity e) {
-        int mode = Modules.HIT_COLOR.index;
         MinecraftClient mc = MinecraftClient.getInstance();
-        if (mode == 0 || mc.world == null) return;
-        int eff = Modules.HIT_EFFECT.index, glow = Modules.HIT_GLOW.index;
+        if (mc.world == null) return;
+        int dustMode = Modules.HIT_COLOR.index;          // 0 = без цветной пыли
+        int eff = Modules.HIT_EFFECT.index;              // 0 = Dust (отдельного эффекта нет)
+        int effMode = Modules.HIT_EFFECT_COLOR.index;    // 0 = оригинальный цвет эффекта
+        int glow = Modules.HIT_GLOW.index;
+        if (dustMode == 0 && eff == 0 && glow == 0) return;
+
         double cx = e.getX(), cy = e.getY() + e.getHeight() * 0.6, cz = e.getZ();
         int cnt = HIT_COUNTS[Modules.HIT_AMOUNT.index % HIT_COUNTS.length];
-        for (int i = 0; i < cnt; i++) {
-            int rgb = pickColor(mode, Modules.HIT_COLOR2.index, i * 200L, Math.random());
-            ParticleEffect fx = effect(eff, rgb, 1.2f);
-            double ox = (Math.random() - 0.5) * 0.6, oy = (Math.random() - 0.5) * 0.6, oz = (Math.random() - 0.5) * 0.6;
-            mc.world.addParticle(fx, cx + ox, cy + oy, cz + oz, ox * 0.4, oy * 0.4 + 0.05, oz * 0.4);
+        if (eff >= 14) {
+            int sm = dustMode != 0 ? dustMode : effMode;
+            spawnShape(mc, eff - 14, cx, cy, cz, sm, Modules.HIT_COLOR2.index, 0.3);
+        } else {
+            for (int i = 0; i < cnt; i++) {
+                double ox = (Math.random() - 0.5) * 0.6, oy = (Math.random() - 0.5) * 0.6, oz = (Math.random() - 0.5) * 0.6;
+                double vx = ox * 0.4, vy = oy * 0.4 + 0.05, vz = oz * 0.4;
+                if (eff != 0) {
+                    if (effMode != 0 && Tint.ok()) {
+                        int rgbE = pickColor(effMode, 0, i * 200L, 0.0);
+                        Tint.spawn(mc.world, Tint.effect(eff, rgbE, 1.2f), cx + ox, cy + oy, cz + oz, vx, vy, vz);
+                    } else {
+                        mc.world.addParticle(effect(eff, 0xFFFFFF, 1.2f), cx + ox, cy + oy, cz + oz, vx, vy, vz);
+                    }
+                }
+                if (dustMode != 0) {
+                    int rgbD = pickColor(dustMode, Modules.HIT_COLOR2.index, i * 200L, Math.random());
+                    mc.world.addParticle(new DustParticleEffect(rgbD, 1.2f), cx + ox, cy + oy, cz + oz, vx, vy, vz);
+                }
+            }
         }
         if (glow > 0) {
             int gc = cnt / 2 + 1;
@@ -176,23 +258,52 @@ public class NeonComfort implements ClientModInitializer { private void handleNo
         }
     }
 
-    /** Хвост у ног: эффект, цвет (можно смешать два) и светящаяся добавка. */
+    /** Хвост: сам эффект (цвет «Trail FX Color») + отдельный слой пыли («Trail» / «Trail Color 2»). */
     private void handleTrail(MinecraftClient mc, ClientPlayerEntity p) {
-        int mode = Modules.TRAIL.index;
-        if (mode == 0 || mc.world == null) return;
+        if (mc.world == null) return;
+        int dustMode = Modules.TRAIL.index;              // 0 = без цветной пыли
+        int eff = Modules.TRAIL_EFFECT.index;
+        int effMode = Modules.TRAIL_EFFECT_COLOR.index;  // 0 = оригинальный цвет эффекта
+        int glow = Modules.TRAIL_GLOW.index;
+        if (dustMode == 0 && eff == 0 && glow == 0) return;
+
         double dx = p.getX() - p.prevX, dy = p.getY() - p.prevY, dz = p.getZ() - p.prevZ;
         double sp = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (sp < 0.03) return;
 
-        int eff = Modules.TRAIL_EFFECT.index, glow = Modules.TRAIL_GLOW.index;
         int n = TRAIL_COUNTS[Modules.TRAIL_AMOUNT.index % TRAIL_COUNTS.length];
+        if (eff >= 14) {                                   // фигура за спиной раз в 4 тика
+            if (p.age % 4 == 0) {
+                double yaw = Math.toRadians(p.getYaw());
+                int sm = dustMode != 0 ? dustMode : effMode;
+                spawnShape(mc, eff - 14, p.getX() + Math.sin(yaw) * 0.9, p.getY() + 0.9,
+                        p.getZ() - Math.cos(yaw) * 0.9, sm, Modules.TRAIL_COLOR2.index, 0.0);
+            }
+            if (glow > 0) {
+                for (int i = 0; i < n; i++) {
+                    mc.world.addParticle(glowEffect(glow), p.getX() + (Math.random() - 0.5) * 0.5,
+                            p.getY() + 0.2 + Math.random() * 0.5, p.getZ() + (Math.random() - 0.5) * 0.5, 0, 0.01, 0);
+                }
+            }
+            return;
+        }
         for (int i = 0; i < n; i++) {
             double t = i / (double) n;
-            int rgb = pickColor(mode, Modules.TRAIL_COLOR2.index, i * 120L, t);
             double x = p.prevX + dx * t + (Math.random() - 0.5) * 0.5;
             double y = p.prevY + dy * t + 0.1 + Math.random() * 0.5;
             double z = p.prevZ + dz * t + (Math.random() - 0.5) * 0.5;
-            mc.world.addParticle(effect(eff, rgb, 1.4f), x, y, z, 0, 0, 0);
+            if (eff != 0) {
+                if (effMode != 0 && Tint.ok()) {
+                    int rgbE = pickColor(effMode, 0, i * 120L, 0.0);
+                    Tint.spawn(mc.world, Tint.effect(eff, rgbE, 1.4f), x, y, z, 0, 0, 0);
+                } else {
+                    mc.world.addParticle(effect(eff, 0xFFFFFF, 1.4f), x, y, z, 0, 0, 0);
+                }
+            }
+            if (dustMode != 0) {
+                int rgbD = pickColor(dustMode, Modules.TRAIL_COLOR2.index, i * 120L, t);
+                mc.world.addParticle(new DustParticleEffect(rgbD, 1.4f), x, y, z, 0, 0, 0);
+            }
             if (glow > 0) mc.world.addParticle(glowEffect(glow), x, y + 0.1, z, 0, 0.01, 0);
         }
     }
