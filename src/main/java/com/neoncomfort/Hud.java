@@ -32,6 +32,7 @@ public final class Hud {
 
         if (Modules.TWILIGHT.index > 0) twilight(ctx, mc, Modules.TWILIGHT.index, Modules.TWILIGHT_STYLE.index);
         ScreenFx.render(ctx, mc);
+        if (mc.currentScreen == null) hitMarker(ctx, mc);
         if (Modules.CROSSHAIR.index < Modules.CROSSHAIR.values.length - 1 && mc.currentScreen == null
                 && mc.options.getPerspective().isFirstPerson()) crosshair(ctx, mc);
         if (Modules.WATERMARK.enabled) watermark(ctx, mc, tr, player);
@@ -53,6 +54,23 @@ public final class Hud {
         for (int i = 0; i < pts; i++) {
             double a = Math.PI * 2 * i / pts;
             dot(ctx, cx + (int) Math.round(Math.cos(a) * r), cy + (int) Math.round(Math.sin(a) * r), c);
+        }
+    }
+
+    /** Hit Marker: короткий спалах диагональных черт вокруг прицела при попадании. */
+    private static void hitMarker(DrawContext ctx, MinecraftClient mc) {
+        int mk = Modules.HIT_MARKER.index;
+        if (mk <= 0) return;
+        long dt = System.currentTimeMillis() - NeonComfort.lastHitMs;
+        if (dt < 0 || dt > 260) return;
+        int a = (int) (255 * (1 - dt / 260f));
+        int c = (a << 24) | Theme.colorRgb(mk - 1);
+        int cx = mc.getWindow().getScaledWidth() / 2;
+        int cy = mc.getWindow().getScaledHeight() / 2;
+        for (int sx = -1; sx <= 1; sx += 2) {
+            for (int sy = -1; sy <= 1; sy += 2) {
+                for (int i = 5; i <= 9; i++) dot(ctx, cx + sx * i, cy + sy * i, c);
+            }
         }
     }
 
@@ -213,13 +231,18 @@ public final class Hud {
     }
 
     /** общий масштаб HUD (0.8 = на 20% меньше) */
-    private static final float S = 0.8f;
+    private static final float[] HUD_SCALES = { 0.8f, 0.7f, 0.9f, 1.0f, 1.2f };
+
+    private static float S() {
+        return HUD_SCALES[Modules.HUD_SIZE.index % HUD_SCALES.length];
+    }
 
     private static void begin(DrawContext ctx, float ax, float ay) {
         MatrixStack m = ctx.getMatrices();
         m.push();
         m.translate(ax, ay, 0f);
-        m.scale(S, S, 1f);
+        float sc = S();
+        m.scale(sc, sc, 1f);
     }
 
     private static void end(DrawContext ctx) {
@@ -254,7 +277,7 @@ public final class Hud {
         String l2 = "Facing  " + p.getHorizontalFacing().asString();
         int w = Math.max(tr.getWidth(l1), tr.getWidth(l2)) + 12;
         int h = 28;
-        float y = mc.getWindow().getScaledHeight() - h * S - 6;
+        float y = mc.getWindow().getScaledHeight() - h * S() - 6;
         begin(ctx, 6, y);
         box(ctx, 0, 0, w, h);
         ctx.drawText(tr, l1, 6, 5, Theme.TEXT, true);
@@ -297,7 +320,7 @@ public final class Hud {
 
         int blockH = 36, gap = 4;
         int total = list.size() * (blockH + gap) - gap;
-        float top = mc.getWindow().getScaledHeight() / 2f - total * S / 2f;
+        float top = mc.getWindow().getScaledHeight() / 2f - total * S() / 2f;
         begin(ctx, 6, top);
         int y = 0;
         for (PlayerEntity o : list) {
@@ -335,7 +358,7 @@ public final class Hud {
         float max = Math.max(1f, le.getMaxHealth());
         String txt = name + "  " + String.format("%.1f", hp) + " / " + String.format("%.0f", max);
         int w = Math.max(110, tr.getWidth(txt) + 14);
-        float x = mc.getWindow().getScaledWidth() / 2f - w * S / 2f;
+        float x = mc.getWindow().getScaledWidth() / 2f - w * S() / 2f;
         begin(ctx, x, 28);
         box(ctx, 0, 0, w, 26);
         ctx.drawText(tr, txt, 8, 5, Theme.TEXT, true);

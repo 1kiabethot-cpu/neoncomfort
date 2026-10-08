@@ -8,9 +8,16 @@ public final class Theme {
     public static final int TEXT_DIM  = 0xFFA9A9C4;
 
     public static final String[] COLOR_NAMES = {
-            "Purple", "Blue", "Green", "Red", "Pink", "Cyan", "Orange", "Yellow", "White" };
+            "Purple", "Blue", "Green", "Red", "Pink", "Cyan", "Orange", "Yellow", "White",
+            "Lime", "Teal", "Gold", "Sky", "Magenta", "Mint", "Coral", "Indigo" };
     private static final int[] COLORS = {
-            0x7C4DFF, 0x2979FF, 0x00C853, 0xFF5252, 0xFF4081, 0x00B8D4, 0xFF9100, 0xFFEA00, 0xFFFFFF };
+            0x7C4DFF, 0x2979FF, 0x00C853, 0xFF5252, 0xFF4081, 0x00B8D4, 0xFF9100, 0xFFEA00, 0xFFFFFF,
+            0xAEEA00, 0x009688, 0xFFC107, 0x40C4FF, 0xD500F9, 0x69F0AE, 0xFF6E40, 0x536DFE };
+
+    /** фон панели меню: Dark, Midnight, Wine, Forest, Graphite */
+    private static final int[] PANELS = { 0xE6141425, 0xE60B1530, 0xE62A0F1A, 0xE60F2418, 0xE61C1C1C };
+
+    public static int panel() { return PANELS[Modules.MENU_THEME.index % PANELS.length]; }
 
     public static int colorCount() { return COLORS.length; }
 

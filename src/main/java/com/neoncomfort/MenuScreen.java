@@ -57,7 +57,7 @@ public class MenuScreen extends Screen {
         int border = Theme.pulsingAccent();
 
         ctx.fill(x - 2, y - 2, x + w + 2, y + h + 2, border);
-        ctx.fill(x, y, x + w, y + h, Theme.PANEL);
+        ctx.fill(x, y, x + w, y + h, Theme.panel());
 
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("NeonComfort v" + NeonComfort.VERSION), width / 2, y + 8, Theme.TEXT);
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("tap to toggle / change"),

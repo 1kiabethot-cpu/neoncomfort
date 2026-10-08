@@ -29,7 +29,7 @@ import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "1.7.0";
+    public static final String VERSION = "1.8.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -63,6 +63,10 @@ public class NeonComfort implements ClientModInitializer {
             if (world.isClient() && entity instanceof LivingEntity) {
                 playHitSound();
                 spawnHitParticles(entity);
+                lastHitMs = System.currentTimeMillis();
+                killTarget = (LivingEntity) entity;
+                killTicks = 0;
+                kx = entity.getX(); ky = entity.getY() + entity.getHeight() * 0.6; kz = entity.getZ();
             }
             return ActionResult.PASS;
         });
@@ -93,11 +97,64 @@ public class NeonComfort implements ClientModInitializer {
         handleWeather(mc);
         handleTrail(mc, p);
         handleNoHurtCam(p);
+        handleKill();
     }
 
     /** No Hurt Cam: сбрасываем таймер урона, камера не дёргается. */
     private void handleNoHurtCam(ClientPlayerEntity p) {
         if (Modules.NO_HURT_CAM.enabled) p.hurtTime = 0;
+    }
+
+    /** время последнего попадания (для Hit Marker) */
+    public static volatile long lastHitMs = 0L;
+
+    // Kill Effect: следим за целью, которую только что ударили
+    private static LivingEntity killTarget;
+    private static int killTicks;
+    private static double kx, ky, kz;
+
+    private void handleKill() {
+        LivingEntity t = killTarget;
+        if (t == null) return;
+        if (++killTicks > 80) {
+            killTarget = null;
+            return;
+        }
+        if (t.isDead() || t.getHealth() <= 0f) {
+            killTarget = null;
+            if (Modules.KILL_EFFECT.index > 0) spawnKill(kx, ky, kz);
+            return;
+        }
+        kx = t.getX();
+        ky = t.getY() + t.getHeight() * 0.6;
+        kz = t.getZ();
+    }
+
+    private static void spawnKill(double x, double y, double z) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.world == null) return;
+        int k = Modules.KILL_EFFECT.index;
+        ParticleEffect fx;
+        int cnt;
+        if (k == 1) { fx = ParticleTypes.TOTEM_OF_UNDYING; cnt = 40; }
+        else if (k == 2) { fx = ParticleTypes.FIREWORK; cnt = 36; }
+        else if (k == 3) { fx = ParticleTypes.SOUL; cnt = 24; }
+        else if (k == 4) { fx = ParticleTypes.CRIT; cnt = 40; }
+        else if (k == 5) { fx = ParticleTypes.HEART; cnt = 14; }
+        else { fx = ParticleTypes.EXPLOSION; cnt = 3; }
+        for (int i = 0; i < cnt; i++) {
+            double vx = (Math.random() - 0.5) * 0.8, vy = Math.random() * 0.6, vz = (Math.random() - 0.5) * 0.8;
+            mc.world.addParticle(fx, x + (Math.random() - 0.5) * 0.5, y + (Math.random() - 0.5) * 0.5,
+                    z + (Math.random() - 0.5) * 0.5, vx, vy, vz);
+        }
+        int cm = Modules.KILL_COLOR.index;
+        if (cm > 0) {                                      // цветной слой пыли
+            int rgb = Theme.colorRgb(cm - 1);
+            for (int i = 0; i < 30; i++) {
+                double vx = (Math.random() - 0.5) * 0.7, vy = Math.random() * 0.5, vz = (Math.random() - 0.5) * 0.7;
+                mc.world.addParticle(new DustParticleEffect(rgb, 1.4f), x, y, z, vx, vy, vz);
+            }
+        }
     }
 
     // количество частиц: Medium, Less, More

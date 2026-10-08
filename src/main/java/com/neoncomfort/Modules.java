@@ -93,6 +93,14 @@ public final class Modules {
     public static final Module TRAIL_GLOW = Module.option("Trail Glow", true, "OFF", "Soft", "Bright", "Spark");
     public static final Module HIT_EFFECT_COLOR = Module.option("Hit FX Color", false, origValues());
     public static final Module TRAIL_EFFECT_COLOR = Module.option("Trail FX Color", false, origValues());
+    public static final Module MENU_THEME = Module.option("Menu Theme", false,
+            "Dark", "Midnight", "Wine", "Forest", "Graphite");
+    public static final Module HUD_SIZE = Module.option("HUD Size", false,
+            "80%", "70%", "90%", "100%", "120%");
+    public static final Module HIT_MARKER = Module.option("Hit Marker", true, color2Values());
+    public static final Module KILL_EFFECT = Module.option("Kill Effect", true,
+            "OFF", "Totem", "Firework", "Soul", "Crit", "Heart", "Boom");
+    public static final Module KILL_COLOR = Module.option("Kill Color", true, color2Values());
     public static final Module SCREEN_FX = Module.option("Screen FX", true,
             "OFF", "Snow", "Sparkle", "Firefly", "Rain", "Bubbles", "Embers", "Petals");
     public static final Module SCREEN_FX_AMOUNT = Module.option("Screen FX Amount", false,
@@ -105,12 +113,13 @@ public final class Modules {
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
     public static final List<Module> PAGE2 = List.of(
-            TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST);
+            TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST,
+            MENU_THEME, HUD_SIZE, HIT_MARKER);
     public static final List<Module> PAGE3 = List.of(
             HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR,
             TRAIL_COLOR2, TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW, TRAIL_EFFECT_COLOR);
     public static final List<Module> PAGE4 = List.of(
-            SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR);
+            SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR, KILL_EFFECT, KILL_COLOR);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4);
 
     /** Упрощённое меню: только самое нужное на одной странице */
