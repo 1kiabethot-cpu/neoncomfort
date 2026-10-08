@@ -31,6 +31,7 @@ public final class Hud {
         TextRenderer tr = mc.textRenderer;
 
         if (Modules.TWILIGHT.index > 0) twilight(ctx, mc, Modules.TWILIGHT.index, Modules.TWILIGHT_STYLE.index);
+        ScreenFx.render(ctx, mc);
         if (Modules.CROSSHAIR.index < Modules.CROSSHAIR.values.length - 1 && mc.currentScreen == null
                 && mc.options.getPerspective().isFirstPerson()) crosshair(ctx, mc);
         if (Modules.WATERMARK.enabled) watermark(ctx, mc, tr, player);

@@ -85,10 +85,17 @@ public final class Modules {
             "Medium", "Less", "More");
     public static final Module TWILIGHT_STYLE = Module.option("Twilight Style", false,
             "Sunset", "Pink", "Aurora", "Violet", "Gold");
-    public static final Module HIT_EFFECT = Module.option("Hit Effect", false,
-            "Dust", "Crit", "Magic", "Star", "Fire");
-    public static final Module TRAIL_EFFECT = Module.option("Trail Effect", false,
-            "Dust", "Crit", "Magic", "Star", "Fire");
+    public static final Module HIT_EFFECT = Module.option("Hit Effect", false, effectNames());
+    public static final Module TRAIL_EFFECT = Module.option("Trail Effect", false, effectNames());
+    public static final Module HIT_COLOR2 = Module.option("Hit Color 2", true, color2Values());
+    public static final Module TRAIL_COLOR2 = Module.option("Trail Color 2", true, color2Values());
+    public static final Module HIT_GLOW = Module.option("Hit Glow", true, "OFF", "Soft", "Bright", "Spark");
+    public static final Module TRAIL_GLOW = Module.option("Trail Glow", true, "OFF", "Soft", "Bright", "Spark");
+    public static final Module SCREEN_FX = Module.option("Screen FX", true,
+            "OFF", "Snow", "Sparkle", "Firefly", "Rain", "Bubbles", "Embers", "Petals");
+    public static final Module SCREEN_FX_AMOUNT = Module.option("Screen FX Amount", false,
+            "Medium", "Less", "More");
+    public static final Module SCREEN_FX_COLOR = Module.option("Screen FX Color", false, autoValues());
     public static final Module FPS_BOOST = Module.option("FPS Boost", true,
             "OFF", "Balanced", "Max");
 
@@ -96,16 +103,42 @@ public final class Modules {
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
     public static final List<Module> PAGE2 = List.of(
-            TWILIGHT, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_COLOR, HIT_VOLUME, TRAIL_AMOUNT, HIT_AMOUNT,
-            TWILIGHT_STYLE, HIT_EFFECT, TRAIL_EFFECT, FPS_BOOST);
-    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2);
+            TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST);
+    public static final List<Module> PAGE3 = List.of(
+            HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, TRAIL_COLOR2,
+            TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW);
+    public static final List<Module> PAGE4 = List.of(
+            SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR);
+    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4);
 
     /** все модули (для сохранения конфига) */
     public static final List<Module> ALL;
     static {
-        List<Module> all = new java.util.ArrayList<>(PAGE1);
-        all.addAll(PAGE2);
+        List<Module> all = new java.util.ArrayList<>();
+        for (List<Module> pg : PAGES) all.addAll(pg);
         ALL = java.util.Collections.unmodifiableList(all);
+    }
+
+    private static String[] effectNames() {
+        return new String[] { "Dust", "Crit", "Magic", "Star", "Fire", "Soul", "Spark",
+                "Heart", "Note", "Snow", "Glow", "Totem", "Rune", "Happy" };
+    }
+
+    private static String[] color2Values() {
+        int n = Theme.COLOR_NAMES.length;
+        String[] a = new String[n + 1];
+        a[0] = "OFF";
+        System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
+        return a;
+    }
+
+    private static String[] autoValues() {
+        int n = Theme.COLOR_NAMES.length;
+        String[] a = new String[n + 2];
+        a[0] = "Auto";
+        System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
+        a[n + 1] = "Rainbow";
+        return a;
     }
 
     private static String[] menuPlus() {

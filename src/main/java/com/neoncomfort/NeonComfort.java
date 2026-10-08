@@ -29,7 +29,7 @@ import net.minecraft.util.Identifier;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "1.4.0";
+    public static final String VERSION = "1.5.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -99,13 +99,47 @@ public class NeonComfort implements ClientModInitializer {
     private static final int[] TRAIL_COUNTS = { 5, 2, 9 };
     private static final int[] HIT_COUNTS   = { 14, 6, 28 };
 
-    /** 0 Dust (цветной), 1 Crit, 2 Magic, 3 Star, 4 Fire */
+    /** Стили: 0 Dust (цветной), дальше готовые частицы игры. */
     private static ParticleEffect effect(int style, int rgb, float scale) {
-        if (style == 1) return ParticleTypes.CRIT;
-        if (style == 2) return ParticleTypes.ENCHANTED_HIT;
-        if (style == 3) return ParticleTypes.END_ROD;
-        if (style == 4) return ParticleTypes.FLAME;
-        return new DustParticleEffect(rgb, scale);
+        switch (style) {
+            case 1: return ParticleTypes.CRIT;
+            case 2: return ParticleTypes.ENCHANTED_HIT;
+            case 3: return ParticleTypes.END_ROD;
+            case 4: return ParticleTypes.FLAME;
+            case 5: return ParticleTypes.SOUL_FIRE_FLAME;
+            case 6: return ParticleTypes.ELECTRIC_SPARK;
+            case 7: return ParticleTypes.HEART;
+            case 8: return ParticleTypes.NOTE;
+            case 9: return ParticleTypes.SNOWFLAKE;
+            case 10: return ParticleTypes.GLOW;
+            case 11: return ParticleTypes.TOTEM_OF_UNDYING;
+            case 12: return ParticleTypes.ENCHANT;
+            case 13: return ParticleTypes.HAPPY_VILLAGER;
+            default: return new DustParticleEffect(rgb, scale);
+        }
+    }
+
+    /** Светящиеся частицы-добавка: 1 Soft, 2 Bright, 3 Spark. */
+    private static ParticleEffect glowEffect(int g) {
+        if (g == 2) return ParticleTypes.END_ROD;
+        if (g == 3) return ParticleTypes.ELECTRIC_SPARK;
+        return ParticleTypes.GLOW;
+    }
+
+    private static int mixColor(int a, int b, double t) {
+        int r = (int) (((a >> 16) & 255) * (1 - t) + ((b >> 16) & 255) * t);
+        int g = (int) (((a >> 8) & 255) * (1 - t) + ((b >> 8) & 255) * t);
+        int bl = (int) ((a & 255) * (1 - t) + (b & 255) * t);
+        return (r << 16) | (g << 8) | bl;
+    }
+
+    /** Цвет частицы: mode = основной цвет (1..N, N+1 = Rainbow), mode2 = второй цвет для плавного перехода. */
+    private static int pickColor(int mode, int mode2, long shift, double t) {
+        if (mode <= 0) return 0xFFFFFF;
+        if (mode == Theme.colorCount() + 1) return Theme.rainbowRgb(shift);
+        int c1 = Theme.colorRgb(mode - 1);
+        if (mode2 > 0) return mixColor(c1, Theme.colorRgb(mode2 - 1), t);
+        return c1;
     }
 
     public static void playHitSound() {
@@ -117,28 +151,30 @@ public class NeonComfort implements ClientModInitializer {
                 .play(PositionedSoundInstance.master(ev, HIT_PITCH[i], vol));
     }
 
-    /** Цветные частицы в месте удара (цвет как у хвоста). */
+    /** Частицы в месте удара: эффект, цвет (можно смешать два) и светящаяся добавка. */
     private static void spawnHitParticles(Entity e) {
         int mode = Modules.HIT_COLOR.index;
         MinecraftClient mc = MinecraftClient.getInstance();
         if (mode == 0 || mc.world == null) return;
-        boolean rainbow = (mode == Theme.colorCount() + 1);
+        int eff = Modules.HIT_EFFECT.index, glow = Modules.HIT_GLOW.index;
         double cx = e.getX(), cy = e.getY() + e.getHeight() * 0.6, cz = e.getZ();
         int cnt = HIT_COUNTS[Modules.HIT_AMOUNT.index % HIT_COUNTS.length];
         for (int i = 0; i < cnt; i++) {
-            int rgb = rainbow ? Theme.rainbowRgb(i * 200L) : Theme.colorRgb(mode - 1);
-            ParticleEffect fx = effect(Modules.HIT_EFFECT.index, rgb, 1.2f);
+            int rgb = pickColor(mode, Modules.HIT_COLOR2.index, i * 200L, Math.random());
+            ParticleEffect fx = effect(eff, rgb, 1.2f);
             double ox = (Math.random() - 0.5) * 0.6, oy = (Math.random() - 0.5) * 0.6, oz = (Math.random() - 0.5) * 0.6;
             mc.world.addParticle(fx, cx + ox, cy + oy, cz + oz, ox * 0.4, oy * 0.4 + 0.05, oz * 0.4);
         }
+        if (glow > 0) {
+            int gc = cnt / 2 + 1;
+            for (int i = 0; i < gc; i++) {
+                double ox = (Math.random() - 0.5) * 0.6, oy = (Math.random() - 0.5) * 0.6, oz = (Math.random() - 0.5) * 0.6;
+                mc.world.addParticle(glowEffect(glow), cx + ox, cy + oy, cz + oz, ox * 0.3, oy * 0.3 + 0.03, oz * 0.3);
+            }
+        }
     }
 
-    /** No Hurt Cam: сбрасываем таймер урона, камера не дёргается. */
-    private void handleNoHurtCam(ClientPlayerEntity p) {
-        if (Modules.NO_HURT_CAM.enabled) p.hurtTime = 0;
-    }
-
-    /** Цветной хвост у ног: виден и от первого лица (если глянуть вниз/назад), и в F5. */
+    /** Хвост у ног: эффект, цвет (можно смешать два) и светящаяся добавка. */
     private void handleTrail(MinecraftClient mc, ClientPlayerEntity p) {
         int mode = Modules.TRAIL.index;
         if (mode == 0 || mc.world == null) return;
@@ -146,16 +182,16 @@ public class NeonComfort implements ClientModInitializer {
         double sp = Math.sqrt(dx * dx + dy * dy + dz * dz);
         if (sp < 0.03) return;
 
-        boolean rainbow = (mode == Theme.colorCount() + 1);
+        int eff = Modules.TRAIL_EFFECT.index, glow = Modules.TRAIL_GLOW.index;
         int n = TRAIL_COUNTS[Modules.TRAIL_AMOUNT.index % TRAIL_COUNTS.length];
         for (int i = 0; i < n; i++) {
             double t = i / (double) n;
-            int rgb = rainbow ? Theme.rainbowRgb(i * 120L) : Theme.colorRgb(mode - 1);
-            ParticleEffect fx = effect(Modules.TRAIL_EFFECT.index, rgb, 1.4f);
+            int rgb = pickColor(mode, Modules.TRAIL_COLOR2.index, i * 120L, t);
             double x = p.prevX + dx * t + (Math.random() - 0.5) * 0.5;
             double y = p.prevY + dy * t + 0.1 + Math.random() * 0.5;
             double z = p.prevZ + dz * t + (Math.random() - 0.5) * 0.5;
-            mc.world.addParticle(fx, x, y, z, 0, 0, 0);
+            mc.world.addParticle(effect(eff, rgb, 1.4f), x, y, z, 0, 0, 0);
+            if (glow > 0) mc.world.addParticle(glowEffect(glow), x, y + 0.1, z, 0, 0.01, 0);
         }
     }
 
