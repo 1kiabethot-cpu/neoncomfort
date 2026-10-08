@@ -95,6 +95,11 @@ public class NeonComfort implements ClientModInitializer {
         handleNoHurtCam(p);
     }
 
+    /** No Hurt Cam: сбрасываем таймер урона, камера не дёргается. */
+    private void handleNoHurtCam(ClientPlayerEntity p) {
+        if (Modules.NO_HURT_CAM.enabled) p.hurtTime = 0;
+    }
+
     // количество частиц: Medium, Less, More
     private static final int[] TRAIL_COUNTS = { 5, 2, 9 };
     private static final int[] HIT_COUNTS   = { 14, 6, 28 };
