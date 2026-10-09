@@ -112,11 +112,17 @@ public class Cosmetics implements ClientModInitializer {
                            PlayerEntityRenderState state, float limbAngle, float limbDistance) {
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc.player == null) return;
-            double dx = state.x - mc.player.getX();
-            double dy = state.y - mc.player.getY();
-            double dz = state.z - mc.player.getZ();
-            if (dx * dx + dy * dy + dz * dz > 1.5) return;
-
+                        // only our own character
+            double cx = mc.player.getX(), cy = mc.player.getY(), cz = mc.player.getZ();
+            double px = mc.player.prevX, py = mc.player.prevY, pz = mc.player.prevZ;
+            double vx = cx - px, vy = cy - py, vz = cz - pz;
+            double wx = state.x - px, wy = state.y - py, wz = state.z - pz;
+            double len2 = vx * vx + vy * vy + vz * vz;
+            double t = len2 > 1.0E-9 ? (wx * vx + wy * vy + wz * vz) / len2 : 0.0;
+            if (t < 0.0) t = 0.0;
+            if (t > 1.0) t = 1.0;
+            double ex = wx - vx * t, ey = wy - vy * t, ez = wz - vz * t;
+            if (ex * ex + ey * ey + ez * ez > 0.04) return;
             int wing = Modules.WINGS.index;
             int hat = Modules.HAT.index;
             if (wing <= 0 && hat <= 0) return;
