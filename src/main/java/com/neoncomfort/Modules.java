@@ -109,6 +109,12 @@ public final class Modules {
     public static final Module FPS_BOOST = Module.option("FPS Boost", true,
             "OFF", "Balanced", "Max");
 
+    // --- косметика ---
+    public static final Module WINGS = Module.option("Wings", true,
+            "OFF", "Void", "Gold", "Ember", "Frost", "Rose");
+    public static final Module HAT = Module.option("Hat", true,
+            "OFF", "Crown", "Halo", "Top Hat", "Cat Ears", "Horns", "Wizard");
+
     public static final List<Module> PAGE1 = List.of(
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
@@ -119,7 +125,7 @@ public final class Modules {
             HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR,
             TRAIL_COLOR2, TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW, TRAIL_EFFECT_COLOR);
     public static final List<Module> PAGE4 = List.of(
-            SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR, KILL_EFFECT, KILL_COLOR);
+            SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR, KILL_EFFECT, KILL_COLOR, WINGS, HAT);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4);
 
     /** Упрощённое меню: только самое нужное на одной странице */
@@ -191,4 +197,4 @@ public final class Modules {
     }
 
     private Modules() {}
-}
+                                                          }
