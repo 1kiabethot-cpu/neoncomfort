@@ -116,6 +116,14 @@ public final class Modules {
             "OFF", "Crown", "Halo", "Top Hat", "Cat Ears", "Horns", "Wizard");
     public static final Module CUBES = Module.option("Cubes", true,
             "OFF", "Few", "Normal", "Many");
+    public static final Module CUBE_MOTION = Module.option("Cube Motion", false,
+            "Circle", "Oval", "Chaos", "Spiral");
+    public static final Module CUBE_LOOK = Module.option("Cube Look", false,
+            "Solid", "Glass", "Glow");
+    public static final Module AURA_RINGS = Module.option("Aura Rings", true,
+            "OFF", "Ring", "Rings", "Circle");
+    public static final Module HIT_RING = Module.option("Hit Ring", true,
+            "OFF", "Ring", "Double", "Burst");
     public static final Module AURA_COLOR = Module.option("Aura Color", false, menuPlus());
 
     public static final List<Module> PAGE1 = List.of(
@@ -129,7 +137,7 @@ public final class Modules {
             TRAIL_COLOR2, TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW, TRAIL_EFFECT_COLOR);
     public static final List<Module> PAGE4 = List.of(
             SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR, KILL_EFFECT, KILL_COLOR,
-            WINGS, HAT, CUBES, AURA_COLOR);
+            WINGS, HAT, CUBES, CUBE_MOTION, CUBE_LOOK, AURA_RINGS, HIT_RING, AURA_COLOR);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4);
 
     /** Упрощённое меню: только самое нужное на одной странице */
