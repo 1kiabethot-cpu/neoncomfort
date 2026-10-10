@@ -29,6 +29,8 @@ public class Cosmetics implements ClientModInitializer {
 
     static final ModelPart WINGS = buildWings();
     static final ModelPart HATS = buildHats();
+    static final int MAX_CUBES = 10;
+    static final ModelPart CUBES = buildCubes();
 
     @Override
     public void onInitializeClient() {
@@ -51,6 +53,23 @@ public class Cosmetics implements ClientModInitializer {
                 ModelTransform.pivot(-1.0f, -8.0f, 2.4f));
         }
         return TexturedModelData.of(data, 128, 128).createModel();
+    }
+
+    private static ModelPart buildCubes() {
+        ModelData data = new ModelData();
+        ModelPartData root = data.getRoot();
+        for (int i = 0; i < MAX_CUBES; i++) {
+            root.addChild("c" + i, ModelPartBuilder.create().uv(0, 108).cuboid(-1.5f, -1.5f, -1.5f, 3f, 3f, 3f),
+                ModelTransform.NONE);
+        }
+        return TexturedModelData.of(data, 128, 128).createModel();
+    }
+
+    static int auraColor() {
+        int idx = Modules.AURA_COLOR.index;
+        if (idx <= 0) return Theme.accent() & 0xFFFFFF;
+        if (idx == Theme.colorCount() + 1) return Theme.rainbowRgb() & 0xFFFFFF;
+        return Theme.colorRgb(idx - 1) & 0xFFFFFF;
     }
 
     private static ModelPart buildHats() {
@@ -112,7 +131,6 @@ public class Cosmetics implements ClientModInitializer {
                            PlayerEntityRenderState state, float limbAngle, float limbDistance) {
             MinecraftClient mc = MinecraftClient.getInstance();
             if (mc.player == null) return;
-                        // only our own character
             double cx = mc.player.getX(), cy = mc.player.getY(), cz = mc.player.getZ();
             double px = mc.player.prevX, py = mc.player.prevY, pz = mc.player.prevZ;
             double vx = cx - px, vy = cy - py, vz = cz - pz;
@@ -123,9 +141,11 @@ public class Cosmetics implements ClientModInitializer {
             if (t > 1.0) t = 1.0;
             double ex = wx - vx * t, ey = wy - vy * t, ez = wz - vz * t;
             if (ex * ex + ey * ey + ez * ez > 0.04) return;
+
             int wing = Modules.WINGS.index;
             int hat = Modules.HAT.index;
-            if (wing <= 0 && hat <= 0) return;
+            int cubes = Modules.CUBES.index;
+            if (wing <= 0 && hat <= 0 && cubes <= 0) return;
 
             PlayerEntityModel model = getContextModel();
             VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX));
@@ -149,6 +169,25 @@ public class Cosmetics implements ClientModInitializer {
                 matrices.pop();
             }
 
+            if (cubes > 0) {
+                int n = cubes == 1 ? 4 : (cubes == 2 ? 6 : 10);
+                float spin = state.age * 0.05f;
+                for (int i = 0; i < MAX_CUBES; i++) {
+                    ModelPart cube = CUBES.getChild("c" + i);
+                    cube.visible = i < n;
+                    if (i < n) {
+                        float a = spin + i * (float) (Math.PI * 2.0 / n);
+                        cube.pivotX = (float) Math.cos(a) * 11f;
+                        cube.pivotZ = (float) Math.sin(a) * 11f;
+                        cube.pivotY = 11f + (float) Math.sin(spin * 2f + i) * 8f;
+                        cube.yaw = a * 2f;
+                        cube.pitch = a;
+                    }
+                }
+                VertexConsumer glow = vertexConsumers.getBuffer(RenderLayer.getEntityTranslucent(TEX));
+                CUBES.render(matrices, glow, 0xF000F0, OverlayTexture.DEFAULT_UV, 0xC8000000 | auraColor());
+            }
+
             if (hat > 0 && hat <= HAT_STYLES) {
                 for (int i = 1; i <= HAT_STYLES; i++) {
                     HATS.getChild("hat" + i).visible = (i == hat);
@@ -160,4 +199,4 @@ public class Cosmetics implements ClientModInitializer {
             }
         }
     }
-                                                                    }
+}
