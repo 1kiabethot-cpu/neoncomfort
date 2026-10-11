@@ -153,6 +153,24 @@ public class Cosmetics implements ClientModInitializer {
         return Theme.colorRgb(idx - 1) & 0xFFFFFF;
     }
 
+    static float mulSize(Modules.Module m) {
+        int i = m.index;
+        return i == 1 ? 0.7f : (i == 2 ? 1.4f : 1.0f);
+    }
+
+    static float mulSpeed(Modules.Module m) {
+        int i = m.index;
+        return i == 1 ? 0.5f : (i == 2 ? 1.8f : 1.0f);
+    }
+
+    /** Aura Glow: Normal / Soft / Bright changes how opaque the glowing parts are. */
+    static int alphaOf(int base) {
+        int i = Modules.AURA_GLOW.index;
+        float k = i == 1 ? 0.55f : (i == 2 ? 1.35f : 1.0f);
+        int a = (int) (base * k);
+        return a > 255 ? 255 : a;
+    }
+
     // ---------------------------------------------------------------- cubes
 
     private static void setCubeScale(float s) {
@@ -167,8 +185,11 @@ public class Cosmetics implements ClientModInitializer {
     static void renderCubes(MatrixStack m, VertexConsumerProvider vcp, float age, int amount) {
         int n = amount == 1 ? 4 : (amount == 2 ? 6 : 10);
         int motion = Modules.CUBE_MOTION.index;   // 0 circle, 1 oval, 2 chaos, 3 spiral
-        float spin = age * 0.05f;
-        float t = age * 0.04f;
+        float sp = mulSpeed(Modules.AURA_SPEED);
+        float rs = mulSize(Modules.AURA_SIZE);
+        float cs = mulSize(Modules.CUBE_SIZE);
+        float spin = age * 0.05f * sp;
+        float t = age * 0.04f * sp;
         for (int i = 0; i < MAX_CUBES; i++) {
             ModelPart cube = CUBES.getChild("c" + i);
             cube.visible = i < n;
@@ -198,9 +219,9 @@ public class Cosmetics implements ClientModInitializer {
                 z = (float) Math.sin(a) * 11f;
                 y = 11f + (float) Math.sin(spin * 2f + i) * 8f;
             }
-            cube.pivotX = x;
-            cube.pivotY = y;
-            cube.pivotZ = z;
+            cube.pivotX = x * rs;
+            cube.pivotY = 11f + (y - 11f) * rs;
+            cube.pivotZ = z * rs;
             cube.yaw = a * 2f;
             cube.pitch = a;
         }
@@ -208,11 +229,11 @@ public class Cosmetics implements ClientModInitializer {
         int rgb = auraColor();
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
         if (look == 2) {
-            setCubeScale(2.2f);
-            CUBES.render(m, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, 0x38000000 | rgb);
+            setCubeScale(2.2f * cs);
+            CUBES.render(m, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (alphaOf(0x38) << 24) | rgb);
         }
-        setCubeScale(1f);
-        int alpha = look == 0 ? 0xE0 : (look == 1 ? 0x70 : 0xD0);
+        setCubeScale(cs);
+        int alpha = alphaOf(look == 0 ? 0xE0 : (look == 1 ? 0x70 : 0xD0));
         CUBES.render(m, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (alpha << 24) | rgb);
     }
 
@@ -220,7 +241,8 @@ public class Cosmetics implements ClientModInitializer {
 
     static void renderRings(MatrixStack m, VertexConsumerProvider vcp, float age, int mode) {
         // mode: 1 = one moving ring, 2 = three moving rings, 3 = magic circle on the ground
-        float spin = age * 0.06f;
+        float spin = age * 0.06f * mulSpeed(Modules.AURA_SPEED);
+        float rs = mulSize(Modules.AURA_SIZE);
         int count = mode == 2 ? 3 : (mode == 1 ? 1 : 2);
         for (int r = 0; r < MAX_RINGS; r++) {
             boolean on = r < count;
@@ -228,11 +250,11 @@ public class Cosmetics implements ClientModInitializer {
             float y;
             float rot;
             if (mode == 3) {
-                radius = r == 0 ? 15f : 9f;
+                radius = (r == 0 ? 15f : 9f) * rs;
                 y = 23.6f;
                 rot = r == 0 ? spin : -spin * 1.4f;
             } else {
-                radius = 10f;
+                radius = 10f * rs;
                 y = 11f + (float) Math.sin(spin * 1.6f + r * 2.094f) * 11f;
                 rot = spin * (r % 2 == 0 ? 1f : -1f);
             }
@@ -251,7 +273,7 @@ public class Cosmetics implements ClientModInitializer {
             }
         }
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
-        RINGS.render(m, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, 0xC0000000 | auraColor());
+        RINGS.render(m, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (alphaOf(0xC0) << 24) | auraColor());
     }
 
     // ---------------------------------------------------------------- hit ring
@@ -267,11 +289,12 @@ public class Cosmetics implements ClientModInitializer {
         double cz = e.getZ();
         double h = e.getHeight();
         double y0 = e.getY();
+        double size = mulSize(Modules.HIT_RING_SIZE);
         if (mode == 1) {
-            hitRing(mc, cx, y0 + h * 0.5, cz, 0.13, r, g, b);
+            hitRing(mc, cx, y0 + h * 0.5, cz, 0.13 * size, r, g, b);
         } else if (mode == 2) {
-            hitRing(mc, cx, y0 + h * 0.25, cz, 0.13, r, g, b);
-            hitRing(mc, cx, y0 + h * 0.75, cz, 0.13, r, g, b);
+            hitRing(mc, cx, y0 + h * 0.25, cz, 0.13 * size, r, g, b);
+            hitRing(mc, cx, y0 + h * 0.75, cz, 0.13 * size, r, g, b);
         } else {
             for (int i = 0; i < 28; i++) {
                 double vx = Math.random() * 2.0 - 1.0;
@@ -279,7 +302,7 @@ public class Cosmetics implements ClientModInitializer {
                 double vz = Math.random() * 2.0 - 1.0;
                 double len = Math.sqrt(vx * vx + vy * vy + vz * vz);
                 if (len < 1.0E-3) continue;
-                double sp = 0.12 / len;
+                double sp = 0.12 * size / len;
                 Particle p = mc.particleManager.addParticle(ParticleTypes.END_ROD,
                     cx, y0 + h * 0.5, cz, vx * sp, vy * sp, vz * sp);
                 if (p != null) {
@@ -339,7 +362,10 @@ public class Cosmetics implements ClientModInitializer {
             VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX));
 
             if (wing > 0 && wing <= WING_STYLES) {
-                float flap = (float) Math.sin(state.age * 0.15f) * 0.14f;
+                int fl = Modules.WING_FLAP.index;   // 0 normal, 1 slow, 2 fast, 3 off
+                float flapSpeed = fl == 1 ? 0.5f : (fl == 2 ? 1.8f : 1.0f);
+                float flap = fl == 3 ? 0f : (float) Math.sin(state.age * 0.15f * flapSpeed) * 0.14f;
+                float wsz = mulSize(Modules.WING_SIZE);
                 for (int i = 0; i < WING_STYLES; i++) {
                     boolean on = (i == wing - 1);
                     ModelPart l = WINGS.getChild("wl" + i);
@@ -349,6 +375,12 @@ public class Cosmetics implements ClientModInitializer {
                     if (on) {
                         l.yaw = -(0.30f + flap);
                         r.yaw = 0.30f + flap;
+                        l.xScale = wsz;
+                        l.yScale = wsz;
+                        l.zScale = wsz;
+                        r.xScale = wsz;
+                        r.yScale = wsz;
+                        r.zScale = wsz;
                     }
                 }
                 matrices.push();
@@ -358,17 +390,4 @@ public class Cosmetics implements ClientModInitializer {
             }
 
             if (hat > 0 && hat <= HAT_STYLES) {
-                for (int i = 1; i <= HAT_STYLES; i++) {
-                    HATS.getChild("hat" + i).visible = (i == hat);
-                }
-                matrices.push();
-                model.head.rotate(matrices);
-                HATS.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
-                matrices.pop();
-            }
-
-            if (cubes > 0) renderCubes(matrices, vertexConsumers, state.age, cubes);
-            if (rings > 0) renderRings(matrices, vertexConsumers, state.age, rings);
-        }
-    }
-                   }
+            
