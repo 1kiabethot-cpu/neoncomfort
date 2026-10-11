@@ -141,6 +141,10 @@ public final class Modules {
             "Normal", "Soft", "Bright");
     public static final Module HIT_RING_SIZE = Module.option("Hit Ring Size", false,
             "Normal", "Small", "Big");
+    public static final Module CUBE_BURST = Module.option("Cube Burst", true,
+            "OFF", "Soft", "Strong");
+    public static final Module AURA_SPARKS = Module.option("Aura Sparks", true,
+            "OFF", "Few", "Many");
 
     public static final List<Module> PAGE1 = List.of(
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
@@ -155,7 +159,8 @@ public final class Modules {
             SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR, KILL_EFFECT, KILL_COLOR,
             WINGS, HAT, CUBES, CUBE_MOTION, CUBE_LOOK, AURA_RINGS, HIT_RING, AURA_COLOR);
     public static final List<Module> PAGE5 = List.of(
-            WING_SIZE, WING_FLAP, CUBE_SIZE, AURA_SIZE, AURA_SPEED, AURA_GLOW, HIT_RING_SIZE);
+            WING_SIZE, WING_FLAP, CUBE_SIZE, AURA_SIZE, AURA_SPEED, AURA_GLOW, HIT_RING_SIZE,
+            CUBE_BURST, AURA_SPARKS);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5);
 
     /** Упрощённое меню: только самое нужное на одной странице */
@@ -227,4 +232,4 @@ public final class Modules {
     }
 
     private Modules() {}
-                                                     }
+    }
