@@ -186,7 +186,7 @@ public class Cosmetics implements ClientModInitializer {
         int n = amount == 1 ? 4 : (amount == 2 ? 6 : 10);
         int motion = Modules.CUBE_MOTION.index;   // 0 circle, 1 oval, 2 chaos, 3 spiral
         float sp = mulSpeed(Modules.AURA_SPEED);
-        float rs = mulSize(Modules.AURA_SIZE);
+        float rs = mulSize(Modules.AURA_SIZE) * (1f + CosmeticsFx.burstAmount());
         float cs = mulSize(Modules.CUBE_SIZE);
         float spin = age * 0.05f * sp;
         float t = age * 0.04f * sp;
@@ -390,7 +390,7 @@ public class Cosmetics implements ClientModInitializer {
             }
 
             if (hat > 0 && hat <= HAT_STYLES) {
-                            for (int i = 1; i <= HAT_STYLES; i++) {
+                for (int i = 1; i <= HAT_STYLES; i++) {
                     HATS.getChild("hat" + i).visible = (i == hat);
                 }
                 matrices.push();
