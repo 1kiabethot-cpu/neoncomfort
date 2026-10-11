@@ -390,4 +390,17 @@ public class Cosmetics implements ClientModInitializer {
             }
 
             if (hat > 0 && hat <= HAT_STYLES) {
-            
+                            for (int i = 1; i <= HAT_STYLES; i++) {
+                    HATS.getChild("hat" + i).visible = (i == hat);
+                }
+                matrices.push();
+                model.head.rotate(matrices);
+                HATS.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+                matrices.pop();
+            }
+
+            if (cubes > 0) renderCubes(matrices, vertexConsumers, state.age, cubes);
+            if (rings > 0) renderRings(matrices, vertexConsumers, state.age, rings);
+        }
+    }
+}
