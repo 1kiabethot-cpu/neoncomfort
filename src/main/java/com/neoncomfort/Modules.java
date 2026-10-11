@@ -126,6 +126,22 @@ public final class Modules {
             "OFF", "Ring", "Double", "Burst");
     public static final Module AURA_COLOR = Module.option("Aura Color", false, menuPlus());
 
+    // --- настройка косметики (страница 5) ---
+    public static final Module WING_SIZE = Module.option("Wing Size", false,
+            "Normal", "Small", "Big");
+    public static final Module WING_FLAP = Module.option("Wing Flap", false,
+            "Normal", "Slow", "Fast", "Off");
+    public static final Module CUBE_SIZE = Module.option("Cube Size", false,
+            "Normal", "Small", "Big");
+    public static final Module AURA_SIZE = Module.option("Aura Size", false,
+            "Normal", "Small", "Big");
+    public static final Module AURA_SPEED = Module.option("Aura Speed", false,
+            "Normal", "Slow", "Fast");
+    public static final Module AURA_GLOW = Module.option("Aura Glow", false,
+            "Normal", "Soft", "Bright");
+    public static final Module HIT_RING_SIZE = Module.option("Hit Ring Size", false,
+            "Normal", "Small", "Big");
+
     public static final List<Module> PAGE1 = List.of(
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
@@ -138,7 +154,9 @@ public final class Modules {
     public static final List<Module> PAGE4 = List.of(
             SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR, KILL_EFFECT, KILL_COLOR,
             WINGS, HAT, CUBES, CUBE_MOTION, CUBE_LOOK, AURA_RINGS, HIT_RING, AURA_COLOR);
-    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4);
+    public static final List<Module> PAGE5 = List.of(
+            WING_SIZE, WING_FLAP, CUBE_SIZE, AURA_SIZE, AURA_SPEED, AURA_GLOW, HIT_RING_SIZE);
+    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5);
 
     /** Упрощённое меню: только самое нужное на одной странице */
     public static final Module MENU_SIMPLE = new Module("Simple Menu", false);
@@ -209,4 +227,4 @@ public final class Modules {
     }
 
     private Modules() {}
-}
+                                                     }
