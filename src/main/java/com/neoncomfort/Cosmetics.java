@@ -29,7 +29,7 @@ import net.minecraft.util.Identifier;
 public class Cosmetics implements ClientModInitializer {
     static final Identifier TEX = Identifier.of("neoncomfort", "textures/entity/cosmetics.png");
     static final int WING_STYLES = 5;
-    static final int HAT_STYLES = 6;
+    static final int HAT_STYLES = 7;
     static final int[] WING_V = {0, 21, 42, 63, 84};
     static final int MAX_CUBES = 10;
     static final int RING_SEGS = 18;
@@ -141,6 +141,15 @@ public class Cosmetics implements ClientModInitializer {
         h.addChild("p3", ModelPartBuilder.create().uv(112,96).cuboid(-2f,-18f,-2f,4f,3f,4f), ModelTransform.NONE);
         h.addChild("p4", ModelPartBuilder.create().uv(56,107).cuboid(-1f,-21f,-1f,2f,3f,2f), ModelTransform.NONE);
         h.addChild("p5", ModelPartBuilder.create().uv(64,107).cuboid(-5f,-10f,-5f,10f,1f,10f), ModelTransform.NONE);
+        h = hats.addChild("hat7", ModelPartBuilder.create(), ModelTransform.NONE);
+        // китайская шляпа: ступенчатый конус; все ступени берут пиксели из одной белой области (0,113),
+        // цвет задаётся при отрисовке (цвет меню)
+        int[] cw = {14, 12, 10, 8, 6, 4, 2};
+        for (int i = 0; i < cw.length; i++) {
+            float half = cw[i] / 2f;
+            h.addChild("p" + i, ModelPartBuilder.create().uv(0, 113)
+                    .cuboid(-half, -9f - i, -half, (float) cw[i], 1f, (float) cw[i]), ModelTransform.NONE);
+        }
         return TexturedModelData.of(data, 128, 128).createModel();
     }
 
@@ -395,7 +404,11 @@ public class Cosmetics implements ClientModInitializer {
                 }
                 matrices.push();
                 model.head.rotate(matrices);
-                HATS.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+                if (hat == 7) {   // China: светится и красится в цвет меню
+                    HATS.render(matrices, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, Theme.accent());
+                } else {
+                    HATS.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+                }
                 matrices.pop();
             }
 

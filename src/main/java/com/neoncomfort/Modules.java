@@ -84,7 +84,7 @@ public final class Modules {
     public static final Module HIT_AMOUNT = Module.option("Hit Amount", false,
             "Medium", "Less", "More");
     public static final Module TWILIGHT_STYLE = Module.option("Twilight Style", false,
-            "Sunset", "Pink", "Aurora", "Violet", "Gold");
+            "Sunset", "Pink", "Aurora", "Violet", "Gold", "Toxic");
     public static final Module HIT_EFFECT = Module.option("Hit Effect", false, effectNames());
     public static final Module TRAIL_EFFECT = Module.option("Trail Effect", false, effectNames());
     public static final Module HIT_COLOR2 = Module.option("Hit Color 2", true, color2Values());
@@ -113,7 +113,7 @@ public final class Modules {
     public static final Module WINGS = Module.option("Wings", true,
             "OFF", "Void", "Gold", "Ember", "Frost", "Rose");
     public static final Module HAT = Module.option("Hat", true,
-            "OFF", "Crown", "Halo", "Top Hat", "Cat Ears", "Horns", "Wizard");
+            "OFF", "Crown", "Halo", "Top Hat", "Cat Ears", "Horns", "Wizard", "China");
     public static final Module CUBES = Module.option("Cubes", true,
             "OFF", "Few", "Normal", "Many");
     public static final Module CUBE_MOTION = Module.option("Cube Motion", false,
@@ -146,12 +146,17 @@ public final class Modules {
     public static final Module AURA_SPARKS = Module.option("Aura Sparks", true,
             "OFF", "Few", "Many");
 
+    // --- стиль «Destra»: список биндов, световой взмах меча ---
+    public static final Module BINDS = new Module("Binds List", true);
+    public static final Module SLASH = Module.option("Slash FX", true, "OFF", "Soft", "Wide", "Double");
+    public static final Module SLASH_COLOR = Module.option("Slash Color", false, menuPlus());
+
     public static final List<Module> PAGE1 = List.of(
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
     public static final List<Module> PAGE2 = List.of(
             TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST,
-            MENU_THEME, HUD_SIZE, HIT_MARKER);
+            MENU_THEME, HUD_SIZE, HIT_MARKER, BINDS, SLASH, SLASH_COLOR);
     public static final List<Module> PAGE3 = List.of(
             HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR,
             TRAIL_COLOR2, TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW, TRAIL_EFFECT_COLOR);

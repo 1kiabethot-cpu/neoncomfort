@@ -26,10 +26,11 @@ import net.minecraft.sound.SoundEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "1.8.0";
+    public static final String VERSION = "1.9.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -98,6 +99,67 @@ public class NeonComfort implements ClientModInitializer {
         handleTrail(mc, p);
         handleNoHurtCam(p);
         handleKill();
+        handleSlash(mc, p);
+    }
+
+    // ---- подписи клавиш для списка биндов ----
+    static String keyLabel(KeyBinding kb) {
+        String k = kb.getBoundKeyTranslationKey();
+        if (k.startsWith("key.keyboard.")) k = k.substring("key.keyboard.".length());
+        else if (k.startsWith("key.mouse.")) k = "mouse " + k.substring("key.mouse.".length());
+        return k.replace('.', ' ').toUpperCase(java.util.Locale.ROOT);
+    }
+
+    public static String menuKeyLabel() { return menuKey == null ? "-" : keyLabel(menuKey); }
+    public static String zoomKeyLabel() { return zoomKey == null ? "-" : keyLabel(zoomKey); }
+
+    // ---- Slash FX: светящийся взмах из частиц при ударе ----
+    private static final int SLASH_STEPS = 5;
+    private int slashStep = -1;
+    private double slashYaw;
+
+    private static int slashRgb(long shift) {
+        int i = Modules.SLASH_COLOR.index;
+        if (i <= 0) return Theme.accent() & 0xFFFFFF;
+        if (i > Theme.colorCount()) return Theme.rainbowRgb(shift);
+        return Theme.colorRgb(i - 1);
+    }
+
+    private void handleSlash(MinecraftClient mc, ClientPlayerEntity p) {
+        int mode = Modules.SLASH.index;
+        if (mc.world == null || mode == 0) {
+            slashStep = -1;
+            return;
+        }
+        // новый взмах рукой (не по блоку, чтобы не срабатывало при добыче)
+        if (p.handSwinging && p.handSwingTicks == 0 && mc.currentScreen == null) {
+            HitResult h = mc.crosshairTarget;
+            if (h == null || h.getType() != HitResult.Type.BLOCK) {
+                slashStep = 0;
+                slashYaw = Math.toRadians(p.getYaw());
+            }
+        }
+        if (slashStep < 0) return;
+
+        double sweep = Math.toRadians(mode == 2 ? 110 : 80);
+        double r = mode == 2 ? 1.9 : 1.5;
+        int per = mode == 1 ? 4 : 6;
+        int arcs = mode == 3 ? 2 : 1;
+        double fx = -Math.sin(slashYaw), fz = Math.cos(slashYaw);      // вперёд
+        double rx = -Math.cos(slashYaw), rz = -Math.sin(slashYaw);     // вправо
+        for (int arc = 0; arc < arcs; arc++) {
+            double tilt = arc == 0 ? -0.5 : 0.5;
+            for (int i = 0; i < per; i++) {
+                double u = (slashStep * per + i) / (double) (SLASH_STEPS * per);
+                double a = -sweep + 2 * sweep * u;
+                double x = p.getX() + fx * Math.cos(a) * r + rx * Math.sin(a) * r;
+                double z = p.getZ() + fz * Math.cos(a) * r + rz * Math.sin(a) * r;
+                double y = p.getEyeY() - 0.3 + Math.sin(a) * tilt;
+                mc.world.addParticle(new DustParticleEffect(slashRgb(i * 90L), 1.1f), x, y, z, 0, 0, 0);
+                if (i % 2 == 0) mc.world.addParticle(ParticleTypes.END_ROD, x, y, z, 0, 0.005, 0);
+            }
+        }
+        if (++slashStep >= SLASH_STEPS) slashStep = -1;
     }
 
     /** No Hurt Cam: сбрасываем таймер урона, камера не дёргается. */

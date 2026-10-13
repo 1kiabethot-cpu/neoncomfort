@@ -36,6 +36,7 @@ public final class Hud {
         if (Modules.CROSSHAIR.index < Modules.CROSSHAIR.values.length - 1 && mc.currentScreen == null
                 && mc.options.getPerspective().isFirstPerson()) crosshair(ctx, mc);
         if (Modules.WATERMARK.enabled) watermark(ctx, mc, tr, player);
+        if (Modules.BINDS.enabled) binds(ctx, mc, tr);
         if (Modules.COORDS.enabled) coords(ctx, mc, tr, player);
         if (Modules.ARMOR.enabled) armor(ctx, mc, tr, player);
         if (Modules.TARGET.enabled) target(ctx, mc, tr);
@@ -203,6 +204,7 @@ public final class Hud {
         int w = mc.getWindow().getScaledWidth(), h = mc.getWindow().getScaledHeight();
         int a = level == 1 ? 0x28 : level == 2 ? 0x44 : 0x60;
         if (style == 2) { aurora(ctx, w, h, a); return; }
+        if (style == 5) { toxic(ctx, w, h, a); return; }
         int top, mid, bot;
         switch (style) {
             case 1 -> { top = 0xFFB6C8; mid = 0xFF8FB0; bot = 0x5A2A50; }
@@ -228,6 +230,53 @@ public final class Hud {
             ctx.fillGradient(0, y0, w, ym, rgb, (al << 24) | rgb);
             ctx.fillGradient(0, ym, w, y1, (al << 24) | rgb, rgb);
         }
+    }
+
+
+    /** Toxic: зелёный неоновый «пиксельный» небосвод, как в обзоре Destra. */
+    private static void toxic(DrawContext ctx, int w, int h, int a) {
+        int base = (a / 2) << 24;
+        ctx.fillGradient(0, 0, w, h, base | 0x0E5A30, base | 0x041A0E);
+        int s = Math.max(6, h / 20);
+        double t = System.currentTimeMillis() / 1000.0;
+        int rows = (int) (h * 0.45) / s;
+        int cols = w / s + 1;
+        for (int ry = 0; ry < rows; ry++) {
+            for (int cx = 0; cx < cols; cx++) {
+                double n = Math.sin(cx * 0.9 + t * 0.5) * Math.cos(ry * 1.3 - t * 0.35)
+                        + Math.sin((cx + ry) * 0.6 + t * 0.2);
+                if (n < 0.55) continue;
+                float fade = 1f - ry / (float) rows;
+                int al = (int) (a * 1.4f * fade * Math.min(1.0, n - 0.55));
+                if (al < 6) continue;
+                ctx.fill(cx * s, ry * s, cx * s + s, ry * s + s, (Math.min(al, 255) << 24) | 0x42FF7A);
+            }
+        }
+    }
+
+    /** Список биндов слева под ватермаркой: меню, зум и включённые переключатели. */
+    private static void binds(DrawContext ctx, MinecraftClient mc, TextRenderer tr) {
+        List<String[]> rows = new ArrayList<>();
+        rows.add(new String[] { "Menu", NeonComfort.menuKeyLabel() });
+        if (Modules.ZOOM.enabled) rows.add(new String[] { "Zoom", NeonComfort.zoomKeyLabel() });
+        if (Modules.FULLBRIGHT.enabled) rows.add(new String[] { "Fullbright", "ON" });
+        if (Modules.AUTOSPRINT.enabled) rows.add(new String[] { "Auto Sprint", "ON" });
+        if (Modules.NO_HURT_CAM.enabled) rows.add(new String[] { "No Hurt Cam", "ON" });
+        if (Modules.LOW_FIRE.enabled) rows.add(new String[] { "Low Fire", "ON" });
+        int w = tr.getWidth("Binds") + 40;
+        for (String[] r : rows) w = Math.max(w, tr.getWidth(r[0]) + tr.getWidth(r[1]) + 24);
+        int h = 15 + rows.size() * 11 + 3;
+        float y = 6 + 16 * S() + 4;
+        begin(ctx, 6, y);
+        box(ctx, 0, 0, w, h);
+        ctx.drawText(tr, "Binds", 6, 3, Theme.accent(), true);
+        int yy = 15;
+        for (String[] r : rows) {
+            ctx.drawText(tr, r[0], 6, yy, Theme.TEXT, true);
+            ctx.drawText(tr, r[1], w - 6 - tr.getWidth(r[1]), yy, Theme.TEXT_DIM, true);
+            yy += 11;
+        }
+        end(ctx);
     }
 
     /** общий масштаб HUD (0.8 = на 20% меньше) */
