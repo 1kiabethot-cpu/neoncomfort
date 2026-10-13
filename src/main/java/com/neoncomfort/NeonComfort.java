@@ -113,53 +113,36 @@ public class NeonComfort implements ClientModInitializer {
     public static String menuKeyLabel() { return menuKey == null ? "-" : keyLabel(menuKey); }
     public static String zoomKeyLabel() { return zoomKey == null ? "-" : keyLabel(zoomKey); }
 
-    // ---- Slash FX: светящийся взмах из частиц при ударе ----
-    private static final int SLASH_STEPS = 5;
-    private int slashStep = -1;
-    private double slashYaw;
+    /** В первом лице пропускаем частицы рядом с камерой, чтобы они не закрывали обзор. */
+    static boolean nearCam(double x, double y, double z, double radius) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        if (mc.player == null || !mc.options.getPerspective().isFirstPerson()) return false;
+        double dx = x - mc.player.getX(), dy = y - mc.player.getEyeY(), dz = z - mc.player.getZ();
+        return dx * dx + dy * dy + dz * dz < radius * radius;
+    }
 
-    private static int slashRgb(long shift) {
+    // ---- Slash FX: светящийся взмах (рисуется моделью в Cosmetics, без частиц) ----
+    static final int SLASH_MS = 340;
+    static long slashStartMs = 0L;
+    static boolean slashFlip = false;
+
+    static int slashRgb(long shift) {
         int i = Modules.SLASH_COLOR.index;
         if (i <= 0) return Theme.accent() & 0xFFFFFF;
-        if (i > Theme.colorCount()) return Theme.rainbowRgb(shift);
-        return Theme.colorRgb(i - 1);
+        if (i > Theme.colorCount()) return Theme.rainbowRgb(shift) & 0xFFFFFF;
+        return Theme.colorRgb(i - 1) & 0xFFFFFF;
     }
 
     private void handleSlash(MinecraftClient mc, ClientPlayerEntity p) {
-        int mode = Modules.SLASH.index;
-        if (mc.world == null || mode == 0) {
-            slashStep = -1;
-            return;
-        }
+        if (mc.world == null || Modules.SLASH.index == 0) return;
         // новый взмах рукой (не по блоку, чтобы не срабатывало при добыче)
         if (p.handSwinging && p.handSwingTicks == 0 && mc.currentScreen == null) {
             HitResult h = mc.crosshairTarget;
             if (h == null || h.getType() != HitResult.Type.BLOCK) {
-                slashStep = 0;
-                slashYaw = Math.toRadians(p.getYaw());
+                slashStartMs = System.currentTimeMillis();
+                slashFlip = !slashFlip;
             }
         }
-        if (slashStep < 0) return;
-
-        double sweep = Math.toRadians(mode == 2 ? 110 : 80);
-        double r = mode == 2 ? 1.9 : 1.5;
-        int per = mode == 1 ? 4 : 6;
-        int arcs = mode == 3 ? 2 : 1;
-        double fx = -Math.sin(slashYaw), fz = Math.cos(slashYaw);      // вперёд
-        double rx = -Math.cos(slashYaw), rz = -Math.sin(slashYaw);     // вправо
-        for (int arc = 0; arc < arcs; arc++) {
-            double tilt = arc == 0 ? -0.5 : 0.5;
-            for (int i = 0; i < per; i++) {
-                double u = (slashStep * per + i) / (double) (SLASH_STEPS * per);
-                double a = -sweep + 2 * sweep * u;
-                double x = p.getX() + fx * Math.cos(a) * r + rx * Math.sin(a) * r;
-                double z = p.getZ() + fz * Math.cos(a) * r + rz * Math.sin(a) * r;
-                double y = p.getEyeY() - 0.3 + Math.sin(a) * tilt;
-                mc.world.addParticle(new DustParticleEffect(slashRgb(i * 90L), 1.1f), x, y, z, 0, 0, 0);
-                if (i % 2 == 0) mc.world.addParticle(ParticleTypes.END_ROD, x, y, z, 0, 0.005, 0);
-            }
-        }
-        if (++slashStep >= SLASH_STEPS) slashStep = -1;
     }
 
     /** No Hurt Cam: сбрасываем таймер урона, камера не дёргается. */
@@ -333,6 +316,7 @@ public class NeonComfort implements ClientModInitializer {
             double x = cx + rx * pts[i][0] - fx * push;
             double y = cy + pts[i][1];
             double z = cz + rz * pts[i][0] - fz * push;
+            if (nearCam(x, y, z, push > 0 ? 0.8 : 1.2)) continue;
             mc.world.addParticle(new DustParticleEffect(rgb, 0.8f), x, y, z, 0, 0, 0);
         }
     }
@@ -359,6 +343,7 @@ public class NeonComfort implements ClientModInitializer {
             for (int i = 0; i < cnt; i++) {
                 double ox = (Math.random() - 0.5) * 0.6, oy = (Math.random() - 0.5) * 0.6, oz = (Math.random() - 0.5) * 0.6;
                 double vx = ox * 0.4, vy = oy * 0.4 + 0.05, vz = oz * 0.4;
+                if (nearCam(cx + ox, cy + oy, cz + oz, 0.8)) continue;
                 if (eff != 0) {
                     if (effMode != 0 && Tint.ok()) {
                         int rgbE = pickColor(effMode, 0, i * 200L, 0.0);
@@ -405,6 +390,7 @@ public class NeonComfort implements ClientModInitializer {
             }
             if (glow > 0) {
                 for (int i = 0; i < n; i++) {
+                    if (nearCam(p.getX(), p.getY() + 0.45, p.getZ(), 1.2)) continue;
                     mc.world.addParticle(glowEffect(glow), p.getX() + (Math.random() - 0.5) * 0.5,
                             p.getY() + 0.2 + Math.random() * 0.5, p.getZ() + (Math.random() - 0.5) * 0.5, 0, 0.01, 0);
                 }
@@ -416,6 +402,7 @@ public class NeonComfort implements ClientModInitializer {
             double x = p.prevX + dx * t + (Math.random() - 0.5) * 0.5;
             double y = p.prevY + dy * t + 0.1 + Math.random() * 0.5;
             double z = p.prevZ + dz * t + (Math.random() - 0.5) * 0.5;
+            if (nearCam(x, y, z, 1.2)) continue;
             if (eff != 0) {
                 if (effMode != 0 && Tint.ok()) {
                     int rgbE = pickColor(effMode, 0, i * 120L, 0.0);

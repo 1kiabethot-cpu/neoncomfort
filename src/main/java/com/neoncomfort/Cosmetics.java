@@ -40,6 +40,10 @@ public class Cosmetics implements ClientModInitializer {
     static final ModelPart HATS = buildHats();
     static final ModelPart CUBES = buildCubes();
     static final ModelPart RINGS = buildRings();
+    static final int SLASH_SEGS = 16;
+    static final ModelPart SLASH = buildSlash();
+    static final int TAIL_SEGS = 14;
+    static final ModelPart TAIL = buildTail();
 
     @Override
     public void onInitializeClient() {
@@ -95,6 +99,28 @@ public class Cosmetics implements ClientModInitializer {
         return TexturedModelData.of(data, 128, 128).createModel();
     }
 
+    /** Сегменты полумесяца для Slash FX: тонкие плоские пластины, берут пиксели из белой области (0,113). */
+    private static ModelPart buildSlash() {
+        ModelData data = new ModelData();
+        ModelPartData root = data.getRoot();
+        for (int i = 0; i < SLASH_SEGS; i++) {
+            root.addChild("s" + i, ModelPartBuilder.create().uv(0, 113).cuboid(-2.5f, -3f, -0.5f, 5f, 6f, 1f),
+                ModelTransform.NONE);
+        }
+        return TexturedModelData.of(data, 128, 128).createModel();
+    }
+
+    /** Хвост: цепочка тонких пластин, которые отклоняются назад при беге. */
+    private static ModelPart buildTail() {
+        ModelData data = new ModelData();
+        ModelPartData root = data.getRoot();
+        for (int i = 0; i < TAIL_SEGS; i++) {
+            root.addChild("t" + i, ModelPartBuilder.create().uv(0, 113).cuboid(-0.5f, -1.5f, -3f, 1f, 3f, 6f),
+                ModelTransform.NONE);
+        }
+        return TexturedModelData.of(data, 128, 128).createModel();
+    }
+
     private static ModelPart buildHats() {
         ModelData data = new ModelData();
         ModelPartData hats = data.getRoot();
@@ -141,14 +167,17 @@ public class Cosmetics implements ClientModInitializer {
         h.addChild("p3", ModelPartBuilder.create().uv(112,96).cuboid(-2f,-18f,-2f,4f,3f,4f), ModelTransform.NONE);
         h.addChild("p4", ModelPartBuilder.create().uv(56,107).cuboid(-1f,-21f,-1f,2f,3f,2f), ModelTransform.NONE);
         h.addChild("p5", ModelPartBuilder.create().uv(64,107).cuboid(-5f,-10f,-5f,10f,1f,10f), ModelTransform.NONE);
-        h = hats.addChild("hat7", ModelPartBuilder.create(), ModelTransform.NONE);
-        // китайская шляпа: ступенчатый конус; все ступени берут пиксели из одной белой области (0,113),
-        // цвет задаётся при отрисовке (цвет меню)
-        int[] cw = {14, 12, 10, 8, 6, 4, 2};
-        for (int i = 0; i < cw.length; i++) {
-            float half = cw[i] / 2f;
-            h.addChild("p" + i, ModelPartBuilder.create().uv(0, 113)
-                    .cuboid(-half, -9f - i, -half, (float) cw[i], 1f, (float) cw[i]), ModelTransform.NONE);
+        // китайская шляпа: плоский конус из тонких слоёв (hat7) и копия для мягкого свечения (hat7g);
+        // все слои берут пиксели из белой области (0,113), цвет и прозрачность задаются при отрисовке
+        ModelPartData core = hats.addChild("hat7", ModelPartBuilder.create(), ModelTransform.NONE);
+        ModelPartData shell = hats.addChild("hat7g", ModelPartBuilder.create(), ModelTransform.NONE);
+        for (int i = 0; i < 8; i++) {
+            float w = 14f - i * 1.75f;
+            float y = -8.55f - 0.55f * i;
+            core.addChild("p" + i, ModelPartBuilder.create().uv(0, 113).cuboid(-w / 2f, y, -w / 2f, w, 0.55f, w),
+                ModelTransform.NONE);
+            shell.addChild("p" + i, ModelPartBuilder.create().uv(0, 113).cuboid(-w / 2f, y, -w / 2f, w, 0.55f, w),
+                ModelTransform.NONE);
         }
         return TexturedModelData.of(data, 128, 128).createModel();
     }
@@ -337,6 +366,110 @@ public class Cosmetics implements ClientModInitializer {
         }
     }
 
+    // ---------------------------------------------------------------- slash
+
+    /** Светящийся полумесяц-взмах вокруг тела. Рисуется только моделью игрока (в 3-м лице), поэтому в первом лице ничего не закрывает. */
+    static void renderSlash(MatrixStack m, VertexConsumerProvider vcp) {
+        int mode = Modules.SLASH.index;
+        if (mode <= 0 || NeonComfort.slashStartMs == 0L) return;
+        float p = (System.currentTimeMillis() - NeonComfort.slashStartMs) / (float) NeonComfort.SLASH_MS;
+        if (p < 0f || p >= 1f) return;
+        float sweep = (float) Math.toRadians(mode == 2 ? 105 : 80);
+        float radius = mode == 2 ? 27f : 21f;
+        float ease = 1f - (1f - p) * (1f - p);            // быстрый старт, мягкий конец
+        float head = -sweep + 2f * sweep * ease;
+        float trail = sweep * 1.15f;                      // длина шлейфа
+        float fade = p < 0.65f ? 1f : (1f - p) / 0.35f;
+        float dir = NeonComfort.slashFlip ? -1f : 1f;
+        int rgb = NeonComfort.slashRgb(0L);
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
+        int arcs = mode == 3 ? 2 : 1;
+        for (int arc = 0; arc < arcs; arc++) {
+            SLASH.pivotY = 5f;
+            SLASH.roll = (float) Math.toRadians(38.0) * dir * (arc == 0 ? 1f : -1f);
+            for (int pass = 0; pass < 2; pass++) {        // 0 = мягкое свечение, 1 = ядро
+                float grow = pass == 0 ? 1.8f : 1f;
+                for (int i = 0; i < SLASH_SEGS; i++) {
+                    ModelPart seg = SLASH.getChild("s" + i);
+                    float u = i / (float) (SLASH_SEGS - 1);        // 0 = хвост, 1 = голова
+                    float a = head - trail * (1f - u);
+                    boolean on = a >= -sweep;
+                    seg.visible = on;
+                    if (!on) continue;
+                    seg.pivotX = (float) Math.sin(a) * radius * dir;
+                    seg.pivotZ = -(float) Math.cos(a) * radius;     // перед игроком = -Z в модели
+                    seg.pivotY = 0f;
+                    seg.yaw = -a * dir;
+                    seg.xScale = 1f;
+                    seg.yScale = (0.12f + 1.3f * (float) Math.sin(Math.PI * u)) * grow;
+                    seg.zScale = pass == 0 ? 2.6f : 0.6f;
+                }
+                int alpha = (int) ((pass == 0 ? 0x38 : 0xB4) * fade);
+                SLASH.render(m, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (alpha << 24) | rgb);
+            }
+        }
+    }
+
+    // ---------------------------------------------------------------- china hat / tail
+
+    /** Прозрачная светящаяся китайская шляпа (цвет как у кубов/ауры). Матрица уже в системе головы. */
+    static void renderChinaHat(MatrixStack m, VertexConsumerProvider vcp) {
+        ModelPart core = HATS.getChild("hat7");
+        ModelPart shell = HATS.getChild("hat7g");
+        for (int i = 0; i < 8; i++) {
+            ModelPart s = shell.getChild("p" + i);
+            s.xScale = 1.22f;
+            s.zScale = 1.22f;
+        }
+        int rgb = auraColor();
+        VertexConsumer tv = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
+        core.visible = false;
+        shell.visible = true;
+        HATS.render(m, tv, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (0x38 << 24) | rgb);
+        core.visible = true;
+        shell.visible = false;
+        HATS.render(m, tv, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (0xB0 << 24) | rgb);
+    }
+
+    /** Хвост: полупрозрачная светящаяся лента со спины; при беге отклоняется назад, на месте слегка колышется. */
+    static void renderTail(MatrixStack m, VertexConsumerProvider vcp, float age, int mode) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        float length = mode == 2 ? 38f : 26f;
+        float step = length / TAIL_SEGS;
+        double sp = mc.player == null ? 0.0 : mc.player.getVelocity().horizontalLength();
+        float lean = (float) Math.min(1.0, sp * 4.5);
+        float t = age * 0.12f;
+        int rgb = auraColor();
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
+        TAIL.pivotX = 0f;
+        TAIL.pivotY = -6f;
+        TAIL.pivotZ = 2.8f;
+        TAIL.yaw = 0.55f;
+        TAIL.roll = 0.22f;
+        for (int pass = 0; pass < 2; pass++) {            // 0 = мягкое свечение, 1 = ядро
+            float cy = 0f;
+            float cz = 0f;
+            for (int i = 0; i < TAIL_SEGS; i++) {
+                float u = i / (float) (TAIL_SEGS - 1);
+                float phi = 0.12f + lean * 1.0f * u + 0.10f * (float) Math.sin(t + i * 0.45f) * (0.4f + lean);
+                float dy = (float) Math.cos(phi) * step;
+                float dz = (float) Math.sin(phi) * step;
+                ModelPart seg = TAIL.getChild("t" + i);
+                seg.pivotX = 0f;
+                seg.pivotY = cy + dy * 0.5f;
+                seg.pivotZ = cz + dz * 0.5f;
+                seg.pitch = phi;
+                seg.xScale = pass == 0 ? 3f : 1f;
+                seg.yScale = step / 3f * 1.25f;
+                seg.zScale = (1f - 0.8f * u) * (pass == 0 ? 1.5f : 1f);
+                cy += dy;
+                cz += dz;
+            }
+            int alpha = pass == 0 ? 0x30 : 0x98;
+            TAIL.render(m, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (alpha << 24) | rgb);
+        }
+    }
+
     // ---------------------------------------------------------------- renderer
 
     static class CosmeticsFeature extends FeatureRenderer<PlayerEntityRenderState, PlayerEntityModel> {
@@ -365,7 +498,9 @@ public class Cosmetics implements ClientModInitializer {
             int hat = Modules.HAT.index;
             int cubes = Modules.CUBES.index;
             int rings = Modules.AURA_RINGS.index;
-            if (wing <= 0 && hat <= 0 && cubes <= 0 && rings <= 0) return;
+            int slash = Modules.SLASH.index;
+            int tail = Modules.TAIL.index;
+            if (wing <= 0 && hat <= 0 && cubes <= 0 && rings <= 0 && slash <= 0 && tail <= 0) return;
 
             PlayerEntityModel model = getContextModel();
             VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX));
@@ -402,18 +537,27 @@ public class Cosmetics implements ClientModInitializer {
                 for (int i = 1; i <= HAT_STYLES; i++) {
                     HATS.getChild("hat" + i).visible = (i == hat);
                 }
+                HATS.getChild("hat7g").visible = false;
                 matrices.push();
                 model.head.rotate(matrices);
-                if (hat == 7) {   // China: светится и красится в цвет меню
-                    HATS.render(matrices, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, Theme.accent());
+                if (hat == 7) {   // China: прозрачная, светится
+                    renderChinaHat(matrices, vertexConsumers);
                 } else {
                     HATS.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
                 }
                 matrices.pop();
             }
 
+            if (tail > 0) {
+                matrices.push();
+                model.body.rotate(matrices);
+                renderTail(matrices, vertexConsumers, state.age, tail);
+                matrices.pop();
+            }
+
             if (cubes > 0) renderCubes(matrices, vertexConsumers, state.age, cubes);
             if (rings > 0) renderRings(matrices, vertexConsumers, state.age, rings);
+            if (slash > 0) renderSlash(matrices, vertexConsumers);
         }
     }
 }

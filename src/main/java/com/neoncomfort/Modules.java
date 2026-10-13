@@ -150,13 +150,14 @@ public final class Modules {
     public static final Module BINDS = new Module("Binds List", true);
     public static final Module SLASH = Module.option("Slash FX", true, "OFF", "Soft", "Wide", "Double");
     public static final Module SLASH_COLOR = Module.option("Slash Color", false, menuPlus());
+    public static final Module TAIL = Module.option("Tail", true, "OFF", "Short", "Long");
 
     public static final List<Module> PAGE1 = List.of(
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
     public static final List<Module> PAGE2 = List.of(
             TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST,
-            MENU_THEME, HUD_SIZE, HIT_MARKER, BINDS, SLASH, SLASH_COLOR);
+            MENU_THEME, HUD_SIZE, HIT_MARKER, BINDS, SLASH, SLASH_COLOR, TAIL);
     public static final List<Module> PAGE3 = List.of(
             HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR,
             TRAIL_COLOR2, TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW, TRAIL_EFFECT_COLOR);
