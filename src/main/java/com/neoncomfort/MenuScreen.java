@@ -145,6 +145,7 @@ public class MenuScreen extends Screen {
             int bx = btnX(i), by = btnY(i);
             if (mx >= bx && mx < bx + BTN_W && my >= by && my < by + BTN_H) {
                 list.get(i).click();
+                if (list.get(i) == Modules.PRESET) Presets.apply(Modules.PRESET.index);
                 Config.save();
                 if (list.get(i) == Modules.HIT_SOUND) NeonComfort.playHitSound();
                 if (list.get(i) == Modules.FPS_BOOST) Performance.apply();

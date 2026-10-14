@@ -30,7 +30,7 @@ import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "2.0.0";
+    public static final String VERSION = "2.1.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -99,6 +99,7 @@ public class NeonComfort implements ClientModInitializer {
         handleTrail(mc, p);
         handleNoHurtCam(p);
         handleKill();
+        handleLightning(mc);
         handleSlash(mc, p);
     }
 
@@ -158,6 +159,57 @@ public class NeonComfort implements ClientModInitializer {
     private static int killTicks;
     private static double kx, ky, kz;
 
+    // ---- Kill Lightning: молния и расходящееся кольцо на месте убийства (частицы, не рядом с камерой) ----
+    private static final java.util.List<double[]> bolts = new java.util.ArrayList<>();
+
+    private static int lightningRgb(long shift) {
+        int i = Modules.LIGHTNING_COLOR.index;
+        if (i <= 0) return Theme.accent() & 0xFFFFFF;
+        if (i > Theme.colorCount()) return Theme.rainbowRgb(shift) & 0xFFFFFF;
+        return Theme.colorRgb(i - 1) & 0xFFFFFF;
+    }
+
+    private void handleLightning(MinecraftClient mc) {
+        if (bolts.isEmpty()) return;
+        if (mc.world == null || Modules.KILL_LIGHTNING.index == 0) {
+            bolts.clear();
+            return;
+        }
+        boolean strong = Modules.KILL_LIGHTNING.index == 2;
+        java.util.Iterator<double[]> it = bolts.iterator();
+        while (it.hasNext()) {
+            double[] b = it.next();
+            int age = (int) b[3];
+            int rgb = lightningRgb(age * 70L);
+            double ground = b[1] - 1.0;
+            if (age < 3) {                                   // первые тики: столб молнии с изломами
+                double h = strong ? 14.0 : 9.0;
+                int pts = (int) (h * 3);
+                double jx = 0, jz = 0;
+                for (int i = 0; i < pts; i++) {
+                    jx = (jx + (Math.random() - 0.5) * 0.6) * 0.85;
+                    jz = (jz + (Math.random() - 0.5) * 0.6) * 0.85;
+                    double x = b[0] + jx, y = ground + h * i / pts, z = b[2] + jz;
+                    if (nearCam(x, y, z, 1.2)) continue;
+                    mc.world.addParticle(new DustParticleEffect(rgb, 1.1f), x, y, z, 0, 0, 0);
+                    if (i % 3 == 0) mc.world.addParticle(ParticleTypes.END_ROD, x, y, z, 0, 0, 0);
+                }
+            }
+            if (age < 9) {                                   // кольцо по земле
+                double r = 0.5 + age * (strong ? 0.55 : 0.4);
+                int n = 18 + age * 2;
+                for (int i = 0; i < n; i++) {
+                    double a = i * Math.PI * 2 / n;
+                    double x = b[0] + Math.cos(a) * r, z = b[2] + Math.sin(a) * r;
+                    if (nearCam(x, ground, z, 1.2)) continue;
+                    mc.world.addParticle(new DustParticleEffect(rgb, 1.0f), x, ground, z, 0, 0.02, 0);
+                }
+            }
+            b[3] += 1;
+            if (b[3] > 10) it.remove();
+        }
+    }
+
     private void handleKill() {
         LivingEntity t = killTarget;
         if (t == null) return;
@@ -168,6 +220,7 @@ public class NeonComfort implements ClientModInitializer {
         if (t.isDead() || t.getHealth() <= 0f) {
             killTarget = null;
             if (Modules.KILL_EFFECT.index > 0) spawnKill(kx, ky, kz);
+            if (Modules.KILL_LIGHTNING.index > 0) bolts.add(new double[] { kx, ky, kz, 0 });
             return;
         }
         kx = t.getX();

@@ -37,6 +37,7 @@ public final class Hud {
                 && mc.options.getPerspective().isFirstPerson()) crosshair(ctx, mc);
         if (Modules.WATERMARK.enabled) watermark(ctx, mc, tr, player);
         if (Modules.BINDS.enabled) binds(ctx, mc, tr);
+        if (Modules.COMPASS.enabled) compass(ctx, mc, tr, player);
         if (Modules.COORDS.enabled) coords(ctx, mc, tr, player);
         if (Modules.ARMOR.enabled) armor(ctx, mc, tr, player);
         if (Modules.TARGET.enabled) target(ctx, mc, tr);
@@ -258,6 +259,39 @@ public final class Hud {
                 }
             }
         }
+    }
+
+    private static final String[] DIRS = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
+
+    /** Компас по центру сверху: стороны света, деления и текущий азимут в градусах. */
+    private static void compass(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity p) {
+        float heading = ((p.getYaw() + 180f) % 360f + 360f) % 360f;   // 0 = север, 90 = восток
+        final int w = 180, h = 24;
+        float x = mc.getWindow().getScaledWidth() / 2f - w * S() / 2f;
+        begin(ctx, x, 4);
+        ctx.fill(0, 0, w, h, Theme.BG);
+        ctx.fill(0, h - 1, w, h, Theme.pulsingAccent());
+        float span = 120f;                                            // видимый сектор, градусов
+        int first = (int) (Math.floor((heading - span / 2f) / 5f) * 5);
+        for (int d = first; d <= heading + span / 2f; d += 5) {
+            float pos = w / 2f + (d - heading) * (w / span);
+            if (pos < 4 || pos > w - 4) continue;
+            int dd = ((d % 360) + 360) % 360;
+            boolean big = dd % 15 == 0;
+            int th = (dd % 45 == 0) ? 6 : (big ? 4 : 2);
+            ctx.fill((int) pos, 12, (int) pos + 1, 12 + th, big ? Theme.TEXT : Theme.TEXT_DIM);
+            if (dd % 45 == 0) {
+                String lab = Lang.t(DIRS[dd / 45]);
+                ctx.drawText(tr, lab, (int) pos - tr.getWidth(lab) / 2, 3,
+                        (dd % 90 == 0) ? Theme.accent() : Theme.TEXT, true);
+            }
+        }
+        // окошко с азимутом по центру
+        String deg = ((int) heading) + "\u00b0";
+        ctx.fill(w / 2 - 14, 11, w / 2 + 14, 21, Theme.BG);
+        ctx.fill(w / 2 - 14, 11, w / 2 + 14, 12, Theme.accent());
+        ctx.drawText(tr, deg, w / 2 - tr.getWidth(deg) / 2, 12, Theme.TEXT, true);
+        end(ctx);
     }
 
     /** Список биндов слева под ватермаркой: меню, зум и включённые переключатели. */

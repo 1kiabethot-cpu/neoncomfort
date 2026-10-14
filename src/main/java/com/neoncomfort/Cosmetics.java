@@ -44,6 +44,8 @@ public class Cosmetics implements ClientModInitializer {
     static final int SLASH_SEGS = 16;
     static final ModelPart SLASH = buildSlash();
     static final int TAIL_SEGS = 14;
+    private static float orbitAngle = 0f;    // текущий угол вращения клинков
+    private static long orbitLastNs = 0L;
     private static float tailLean = 0f;     // сглаженный наклон хвоста назад
     private static long tailLastNs = 0L;
 
@@ -429,6 +431,49 @@ public class Cosmetics implements ClientModInitializer {
             .overlay(OverlayTexture.DEFAULT_UV).light(FULL_LIGHT).normal(0f, 1f, 0f);
     }
 
+    /** Orbit Blades: светящиеся клинки кружатся вокруг тела; при беге вращаются быстрее. */
+    static void renderOrbit(MatrixStack m, VertexConsumerProvider vcp, int mode) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        int n = mode == 1 ? 3 : (mode == 2 ? 4 : 6);
+        long now = System.nanoTime();
+        float dt = orbitLastNs == 0L ? 0.016f : Math.min(0.1f, (now - orbitLastNs) / 1.0e9f);
+        orbitLastNs = now;
+        double sp = mc.player == null ? 0.0 : mc.player.getVelocity().horizontalLength();
+        orbitAngle += dt * (1.6f + (float) Math.min(1.0, sp * 6.0) * 3.5f);
+        Matrix4f mat = m.peek().getPositionMatrix();
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TEX));
+        int rgb = auraColor();
+        int r = (rgb >> 16) & 255;
+        int g = (rgb >> 8) & 255;
+        int b = rgb & 255;
+        float radius = 17f;
+        for (int k = 0; k < n; k++) {
+            float a = orbitAngle + k * (float) (Math.PI * 2.0 / n);
+            float cx = (float) Math.cos(a) * radius;
+            float cz = (float) Math.sin(a) * radius;
+            float cy = 6f + (k % 2 == 0 ? -3f : 3f) + (float) Math.sin(orbitAngle * 1.5f + k) * 1.5f;
+            float tx = (float) -Math.sin(a);                 // касательная: направление движения клинка
+            float tz = (float) Math.cos(a);
+            float rx = (float) Math.cos(a);                  // радиальное направление
+            float rz = (float) Math.sin(a);
+            for (int pass = 0; pass < 2; pass++) {           // 0 = мягкое свечение, 1 = ядро
+                float len = pass == 0 ? 9.5f : 7f;
+                float tail = pass == 0 ? 6f : 4f;
+                float hh = pass == 0 ? 3.6f : 2.2f;
+                int al = pass == 0 ? 70 : 230;
+                // два ромба-клинка: вертикальный и горизонтальный (вместе дают объём)
+                float[][] v1 = { { cx + tx * len, cy, cz + tz * len }, { cx, cy - hh, cz },
+                                 { cx - tx * tail, cy, cz - tz * tail }, { cx, cy + hh, cz } };
+                float[][] v2 = { { cx + tx * len, cy, cz + tz * len }, { cx + rx * hh, cy, cz + rz * hh },
+                                 { cx - tx * tail, cy, cz - tz * tail }, { cx - rx * hh, cy, cz - rz * hh } };
+                for (float[][] v : new float[][][] { v1, v2 }) {
+                    for (int i = 0; i < 4; i++) tv(vc, mat, v[i][0], v[i][1], v[i][2], r, g, b, al);
+                    for (int i = 3; i >= 0; i--) tv(vc, mat, v[i][0], v[i][1], v[i][2], r, g, b, al);
+                }
+            }
+        }
+    }
+
     /** Хвост: цельная светящаяся лента со спины; при беге отклоняется назад, на месте слегка колышется. */
     static void renderTail(MatrixStack m, VertexConsumerProvider vcp, float age, int mode) {
         MinecraftClient mc = MinecraftClient.getInstance();
@@ -525,7 +570,8 @@ public class Cosmetics implements ClientModInitializer {
             int rings = Modules.AURA_RINGS.index;
             int slash = Modules.SLASH.index;
             int tail = Modules.TAIL.index;
-            if (wing <= 0 && hat <= 0 && cubes <= 0 && rings <= 0 && slash <= 0 && tail <= 0) return;
+            int orbit = Modules.ORBIT.index;
+            if (wing <= 0 && hat <= 0 && cubes <= 0 && rings <= 0 && slash <= 0 && tail <= 0 && orbit <= 0) return;
 
             PlayerEntityModel model = getContextModel();
             VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX));
@@ -577,6 +623,13 @@ public class Cosmetics implements ClientModInitializer {
                 matrices.push();
                 model.body.rotate(matrices);
                 renderTail(matrices, vertexConsumers, state.age, tail);
+                matrices.pop();
+            }
+
+            if (orbit > 0) {
+                matrices.push();
+                model.body.rotate(matrices);
+                renderOrbit(matrices, vertexConsumers, orbit);
                 matrices.pop();
             }
 

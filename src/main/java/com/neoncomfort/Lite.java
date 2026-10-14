@@ -24,6 +24,14 @@ public final class Lite {
         return res;
     }
 
+    /** выключить все эффекты на страницах 2-5 (кроме FPS Boost); используется Lite и пресетами */
+    static void clearEffects() {
+        for (Modules.Module m : affected()) {
+            if (m.isOption()) m.index = 0;
+            else m.enabled = false;
+        }
+    }
+
     private static boolean cleared(Modules.Module m) {
         return m.isOption() ? m.index == 0 : !m.enabled;
     }

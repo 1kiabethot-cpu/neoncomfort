@@ -152,11 +152,18 @@ public final class Modules {
     public static final Module SLASH_COLOR = Module.option("Slash Color", false, menuPlus());
     public static final Module TAIL = Module.option("Tail", true, "OFF", "Short", "Long");
 
+    // --- версия 2.1: пресеты, орбитальные клинки, молния при убийстве, компас ---
+    public static final Module PRESET = Module.option("Preset", false, "Custom", "Destra", "Neon", "Minimal", "PvP");
+    public static final Module ORBIT = Module.option("Orbit Blades", true, "OFF", "Few", "Normal", "Many");
+    public static final Module KILL_LIGHTNING = Module.option("Kill Lightning", true, "OFF", "Soft", "Strong");
+    public static final Module LIGHTNING_COLOR = Module.option("Lightning Color", false, menuPlus());
+    public static final Module COMPASS = new Module("Compass Bar", false);
+
     public static final List<Module> PAGE1 = List.of(
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
             CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
     public static final List<Module> PAGE2 = List.of(
-            TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST,
+            PRESET, TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST,
             MENU_THEME, HUD_SIZE, HIT_MARKER, BINDS, SLASH, SLASH_COLOR, TAIL);
     public static final List<Module> PAGE3 = List.of(
             HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR,
@@ -166,7 +173,7 @@ public final class Modules {
             WINGS, HAT, CUBES, CUBE_MOTION, CUBE_LOOK, AURA_RINGS, HIT_RING, AURA_COLOR);
     public static final List<Module> PAGE5 = List.of(
             WING_SIZE, WING_FLAP, CUBE_SIZE, AURA_SIZE, AURA_SPEED, AURA_GLOW, HIT_RING_SIZE,
-            CUBE_BURST, AURA_SPARKS);
+            CUBE_BURST, AURA_SPARKS, ORBIT, KILL_LIGHTNING, LIGHTNING_COLOR, COMPASS);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5);
 
     /** Упрощённое меню: только самое нужное на одной странице */
