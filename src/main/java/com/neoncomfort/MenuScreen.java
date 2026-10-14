@@ -35,11 +35,19 @@ public class MenuScreen extends Screen {
 
     private static final int PB_W = 56, PB_H = 14;
     private int pageBtnX() { return px() + panelW() - PB_W - 6; }
-    private int pageBtnY() { return py() + 6; }
+    private int pageBtnY() { return py() + 22; }
 
     private static final int MB_W = 84;
     private int modeBtnX() { return px() + 6; }
-    private int modeBtnY() { return py() + 6; }
+    private int modeBtnY() { return py() + 22; }
+
+    // кнопка лайт-режима (по центру под заголовком) и кнопка языка (слева вверху)
+    private static final int LB_W = 78;
+    private int liteBtnX() { return px() + (panelW() - LB_W) / 2; }
+    private int liteBtnY() { return py() + 22; }
+    private static final int LG_W = 34;
+    private int langBtnX() { return px() + 6; }
+    private int langBtnY() { return py() + 5; }
 
     private int btnX(int i) { return px() + GAP + (i % cols()) * (BTN_W + GAP); }
     private int btnY(int i) { return py() + 40 + (i / cols()) * (BTN_H + GAP); }
@@ -60,14 +68,26 @@ public class MenuScreen extends Screen {
         ctx.fill(x, y, x + w, y + h, Theme.panel());
 
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("NeonComfort v" + NeonComfort.VERSION), width / 2, y + 8, Theme.TEXT);
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal("tap to toggle / change"),
-                width / 2, y + 22, Theme.TEXT_DIM);
+
+        // кнопка языка (слева вверху)
+        int lgx = langBtnX(), lgy = langBtnY();
+        boolean lgh = mouseX >= lgx && mouseX < lgx + LG_W && mouseY >= lgy && mouseY < lgy + PB_H;
+        ctx.fill(lgx, lgy, lgx + LG_W, lgy + PB_H, lgh ? Theme.accent() : Theme.accent2());
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(Lang.buttonLabel()), lgx + LG_W / 2, lgy + 3, Theme.TEXT);
+
+        // кнопка лайт-режима (по центру): выключает всё, кроме FPS Boost и Fullbright
+        int lbx = liteBtnX(), lby = liteBtnY();
+        boolean lbh = mouseX >= lbx && mouseX < lbx + LB_W && mouseY >= lby && mouseY < lby + PB_H;
+        boolean lite = Modules.LITE.enabled;
+        ctx.fill(lbx, lby, lbx + LB_W, lby + PB_H, lite ? (lbh ? 0xFF2FD36B : 0xFF1FA350) : (lbh ? Theme.accent() : Theme.accent2()));
+        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(Lang.t(lite ? "Lite: ON" : "Lite: OFF")),
+                lbx + LB_W / 2, lby + 3, Theme.TEXT);
 
         // кнопка режима меню (слева вверху): Simple / Full
         int mbx = modeBtnX(), mby = modeBtnY();
         boolean mh = mouseX >= mbx && mouseX < mbx + MB_W && mouseY >= mby && mouseY < mby + PB_H;
         ctx.fill(mbx, mby, mbx + MB_W, mby + PB_H, mh ? Theme.accent() : Theme.accent2());
-        String ml = simple() ? "Menu: Simple" : "Menu: Full";
+        String ml = Lang.t(simple() ? "Menu: Simple" : "Menu: Full");
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(ml), mbx + MB_W / 2, mby + 3, Theme.TEXT);
 
         // кнопка страницы (справа вверху), только в полном меню
@@ -75,7 +95,7 @@ public class MenuScreen extends Screen {
             int pbx = pageBtnX(), pby = pageBtnY();
             boolean ph = mouseX >= pbx && mouseX < pbx + PB_W && mouseY >= pby && mouseY < pby + PB_H;
             ctx.fill(pbx, pby, pbx + PB_W, pby + PB_H, ph ? Theme.accent() : Theme.accent2());
-            String pl = "Page " + (page + 1) + "/" + Modules.PAGES.size();
+            String pl = Lang.t("Page") + " " + (page + 1) + "/" + Modules.PAGES.size();
             ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(pl), pbx + PB_W / 2, pby + 3, Theme.TEXT);
         }
 
@@ -92,8 +112,8 @@ public class MenuScreen extends Screen {
                 ctx.fill(bx, by + BTN_H - 1, bx + BTN_W, by + BTN_H, Theme.pulsingAccent());
             }
             int ty = by + (BTN_H - 8) / 2;
-            ctx.drawText(textRenderer, m.name, bx + 8, ty, Theme.TEXT, true);
-            String st = m.label();
+            ctx.drawText(textRenderer, Lang.t(m.name), bx + 8, ty, Theme.TEXT, true);
+            String st = Lang.t(m.label());
             ctx.drawText(textRenderer, st, bx + BTN_W - 8 - textRenderer.getWidth(st), ty,
                     on ? 0xFFFFFFFF : Theme.TEXT_DIM, true);
         }
@@ -101,6 +121,15 @@ public class MenuScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mx, double my, int button) {
+        if (mx >= langBtnX() && mx < langBtnX() + LG_W && my >= langBtnY() && my < langBtnY() + PB_H) {
+            Modules.LANG.index = (Modules.LANG.index + 1) % Modules.LANG.values.length;
+            Config.save();
+            return true;
+        }
+        if (mx >= liteBtnX() && mx < liteBtnX() + LB_W && my >= liteBtnY() && my < liteBtnY() + PB_H) {
+            Lite.setEnabled(!Modules.LITE.enabled);
+            return true;
+        }
         if (mx >= modeBtnX() && mx < modeBtnX() + MB_W && my >= modeBtnY() && my < modeBtnY() + PB_H) {
             Modules.MENU_SIMPLE.enabled = !Modules.MENU_SIMPLE.enabled;
             page = 0;

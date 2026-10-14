@@ -171,6 +171,10 @@ public final class Modules {
 
     /** Упрощённое меню: только самое нужное на одной странице */
     public static final Module MENU_SIMPLE = new Module("Simple Menu", false);
+    /** Язык меню: English / Українська */
+    public static final Module LANG = Module.option("Language", false, "English", "\u0423\u043a\u0440\u0430\u0457\u043d\u0441\u044c\u043a\u0430");
+    /** Лайт-режим: выключает всё, кроме FPS Boost и Fullbright */
+    public static final Module LITE = new Module("Lite Mode", false);
     public static final List<Module> SIMPLE = List.of(
             CROSSHAIR, CROSSHAIR_COLOR, HIT_SOUND,
             HIT_COLOR, HIT_EFFECT, TRAIL,
@@ -183,6 +187,8 @@ public final class Modules {
         List<Module> all = new java.util.ArrayList<>();
         for (List<Module> pg : PAGES) all.addAll(pg);
         all.add(MENU_SIMPLE);
+        all.add(LANG);
+        all.add(LITE);
         ALL = java.util.Collections.unmodifiableList(all);
     }
 

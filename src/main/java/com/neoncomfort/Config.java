@@ -40,6 +40,7 @@ public final class Config {
                 }
             } catch (NumberFormatException ignored) { }
         }
+        Lite.deserialize(p.getProperty("lite_backup"));
     }
 
     public static void save() {
@@ -47,6 +48,8 @@ public final class Config {
         for (Modules.Module m : Modules.ALL) {
             p.setProperty(key(m), m.isOption() ? String.valueOf(m.index) : String.valueOf(m.enabled));
         }
+        String lb = Lite.serialize();
+        if (!lb.isEmpty()) p.setProperty("lite_backup", lb);
         try (OutputStream out = Files.newOutputStream(file())) {
             p.store(out, "NeonComfort settings");
         } catch (IOException ignored) { }

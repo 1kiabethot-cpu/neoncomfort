@@ -44,6 +44,8 @@ public class Cosmetics implements ClientModInitializer {
     static final int SLASH_SEGS = 16;
     static final ModelPart SLASH = buildSlash();
     static final int TAIL_SEGS = 14;
+    private static float tailLean = 0f;     // сглаженный наклон хвоста назад
+    private static long tailLastNs = 0L;
 
     @Override
     public void onInitializeClient() {
@@ -430,12 +432,18 @@ public class Cosmetics implements ClientModInitializer {
     /** Хвост: цельная светящаяся лента со спины; при беге отклоняется назад, на месте слегка колышется. */
     static void renderTail(MatrixStack m, VertexConsumerProvider vcp, float age, int mode) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        float length = mode == 2 ? 40f : 28f;
-        float width = mode == 2 ? 8f : 7f;
+        float length = mode == 2 ? 46f : 32f;
+        float width = mode == 2 ? 11f : 9f;
         int n = TAIL_SEGS;
         float step = length / n;
         double sp = mc.player == null ? 0.0 : mc.player.getVelocity().horizontalLength();
-        float lean = (float) Math.min(1.0, sp * 4.5);
+        // хвост плавно отстаёт от движения: при беге вытягивается назад, на месте возвращается вниз
+        float target = (float) Math.min(1.0, sp * 7.0);
+        long now = System.nanoTime();
+        float dt = tailLastNs == 0L ? 0.016f : Math.min(0.1f, (now - tailLastNs) / 1.0e9f);
+        tailLastNs = now;
+        tailLean += (target - tailLean) * Math.min(1f, dt * 6f);
+        float lean = tailLean;
         float t = age * 0.12f;
         float yaw = 0.55f;
         float dx = (float) Math.cos(yaw);
@@ -448,7 +456,7 @@ public class Cosmetics implements ClientModInitializer {
         cz[0] = 2.8f;
         for (int i = 0; i < n; i++) {
             float u = i / (float) (n - 1);
-            float phi = 0.12f + lean * u + 0.10f * (float) Math.sin(t + i * 0.45f) * (0.4f + lean);
+            float phi = 0.10f + lean * 1.35f * (float) Math.pow(u, 1.3) + 0.10f * (float) Math.sin(t + i * 0.45f) * (0.4f + lean);
             cx[i + 1] = cx[i];
             cy[i + 1] = cy[i] + (float) Math.cos(phi) * step;
             cz[i + 1] = cz[i] + (float) Math.sin(phi) * step;
@@ -460,7 +468,7 @@ public class Cosmetics implements ClientModInitializer {
         int g = (rgb >> 8) & 255;
         int b = rgb & 255;
         // три прохода: широкое мягкое свечение, ядро, яркая кромка по одной стороне
-        float[][] passes = { { -0.9f, 0.9f, 0.16f }, { -0.5f, 0.5f, 0.50f }, { 0.40f, 0.5f, 1.00f } };
+        float[][] passes = { { -0.9f, 0.9f, 0.16f }, { -0.5f, 0.5f, 0.60f }, { 0.40f, 0.5f, 1.00f } };
         for (float[] ps : passes) {
             for (int i = 0; i < n; i++) {
                 float u0 = i / (float) n;

@@ -233,23 +233,29 @@ public final class Hud {
     }
 
 
-    /** Toxic: зелёный неоновый «пиксельный» небосвод, как в обзоре Destra. */
+    /** Toxic: зелёное неоновое небо: мягкий отсвет сверху и пиксельные ленты-сияния (как в обзоре Destra). */
     private static void toxic(DrawContext ctx, int w, int h, int a) {
-        int base = (a / 2) << 24;
-        ctx.fillGradient(0, 0, w, h, base | 0x0E5A30, base | 0x041A0E);
-        int s = Math.max(6, h / 20);
         double t = System.currentTimeMillis() / 1000.0;
-        int rows = (int) (h * 0.45) / s;
+        // 1) мягкий зелёный отсвет, плавно затухающий вниз
+        int g1 = Math.min(200, (int) (a * 1.4f));
+        ctx.fillGradient(0, 0, w, (int) (h * 0.55f), (g1 << 24) | 0x1FE06A, 0x001FE06A);
+        // 2) ленты из крупных «пикселей»: волна по горизонтали, колонки выровнены по сетке
+        int s = Math.max(4, h / 36);
         int cols = w / s + 1;
-        for (int ry = 0; ry < rows; ry++) {
-            for (int cx = 0; cx < cols; cx++) {
-                double n = Math.sin(cx * 0.9 + t * 0.5) * Math.cos(ry * 1.3 - t * 0.35)
-                        + Math.sin((cx + ry) * 0.6 + t * 0.2);
-                if (n < 0.55) continue;
-                float fade = 1f - ry / (float) rows;
-                int al = (int) (a * 1.4f * fade * Math.min(1.0, n - 0.55));
-                if (al < 6) continue;
-                ctx.fill(cx * s, ry * s, cx * s + s, ry * s + s, (Math.min(al, 255) << 24) | 0x42FF7A);
+        for (int ribbon = 0; ribbon < 3; ribbon++) {
+            int thick = (int) (h * (0.075 - ribbon * 0.012));
+            for (int c = 0; c < cols; c++) {
+                double x = c * s / (double) w;
+                double yc = h * (0.10 + 0.10 * ribbon)
+                        + Math.sin(x * 5.0 + t * 0.35 + ribbon * 2.1) * h * 0.06
+                        + Math.sin(x * 11.0 - t * 0.5 + ribbon) * h * 0.02;
+                int y0 = (int) (Math.round((yc - thick / 2.0) / s) * s);
+                for (int yy = 0; yy < thick; yy += s) {
+                    double k = 1.0 - Math.abs((yy + s / 2.0) / thick * 2.0 - 1.0);   // 0..1 «колокол»
+                    int al = (int) (a * 2.2 * k);
+                    if (al < 8) continue;
+                    ctx.fill(c * s, y0 + yy, c * s + s, y0 + yy + s, (Math.min(al, 200) << 24) | 0x4CFF86);
+                }
             }
         }
     }
@@ -263,17 +269,18 @@ public final class Hud {
         if (Modules.AUTOSPRINT.enabled) rows.add(new String[] { "Auto Sprint", "ON" });
         if (Modules.NO_HURT_CAM.enabled) rows.add(new String[] { "No Hurt Cam", "ON" });
         if (Modules.LOW_FIRE.enabled) rows.add(new String[] { "Low Fire", "ON" });
-        int w = tr.getWidth("Binds") + 40;
-        for (String[] r : rows) w = Math.max(w, tr.getWidth(r[0]) + tr.getWidth(r[1]) + 24);
+        int w = tr.getWidth(Lang.t("Binds")) + 40;
+        for (String[] r : rows) w = Math.max(w, tr.getWidth(Lang.t(r[0])) + tr.getWidth(Lang.t(r[1])) + 24);
         int h = 15 + rows.size() * 11 + 3;
         float y = 6 + 16 * S() + 4;
         begin(ctx, 6, y);
         box(ctx, 0, 0, w, h);
-        ctx.drawText(tr, "Binds", 6, 3, Theme.accent(), true);
+        ctx.drawText(tr, Lang.t("Binds"), 6, 3, Theme.accent(), true);
         int yy = 15;
         for (String[] r : rows) {
-            ctx.drawText(tr, r[0], 6, yy, Theme.TEXT, true);
-            ctx.drawText(tr, r[1], w - 6 - tr.getWidth(r[1]), yy, Theme.TEXT_DIM, true);
+            ctx.drawText(tr, Lang.t(r[0]), 6, yy, Theme.TEXT, true);
+            String key = Lang.t(r[1]);
+            ctx.drawText(tr, key, w - 6 - tr.getWidth(key), yy, Theme.TEXT_DIM, true);
             yy += 11;
         }
         end(ctx);
@@ -323,7 +330,7 @@ public final class Hud {
 
     private static void coords(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity p) {
         String l1 = "XYZ  " + p.getBlockX() + "  " + p.getBlockY() + "  " + p.getBlockZ();
-        String l2 = "Facing  " + p.getHorizontalFacing().asString();
+        String l2 = Lang.t("Facing") + "  " + Lang.t(p.getHorizontalFacing().asString());
         int w = Math.max(tr.getWidth(l1), tr.getWidth(l2)) + 12;
         int h = 28;
         float y = mc.getWindow().getScaledHeight() - h * S() - 6;
