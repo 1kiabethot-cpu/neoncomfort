@@ -25,6 +25,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.particle.ParticleTypes;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
+import org.joml.Matrix4f;
 
 public class Cosmetics implements ClientModInitializer {
     static final Identifier TEX = Identifier.of("neoncomfort", "textures/entity/cosmetics.png");
@@ -43,7 +44,6 @@ public class Cosmetics implements ClientModInitializer {
     static final int SLASH_SEGS = 16;
     static final ModelPart SLASH = buildSlash();
     static final int TAIL_SEGS = 14;
-    static final ModelPart TAIL = buildTail();
 
     @Override
     public void onInitializeClient() {
@@ -105,17 +105,6 @@ public class Cosmetics implements ClientModInitializer {
         ModelPartData root = data.getRoot();
         for (int i = 0; i < SLASH_SEGS; i++) {
             root.addChild("s" + i, ModelPartBuilder.create().uv(0, 113).cuboid(-2.5f, -3f, -0.5f, 5f, 6f, 1f),
-                ModelTransform.NONE);
-        }
-        return TexturedModelData.of(data, 128, 128).createModel();
-    }
-
-    /** Хвост: цепочка тонких пластин, которые отклоняются назад при беге. */
-    private static ModelPart buildTail() {
-        ModelData data = new ModelData();
-        ModelPartData root = data.getRoot();
-        for (int i = 0; i < TAIL_SEGS; i++) {
-            root.addChild("t" + i, ModelPartBuilder.create().uv(0, 113).cuboid(-0.5f, -1.5f, -3f, 1f, 3f, 6f),
                 ModelTransform.NONE);
         }
         return TexturedModelData.of(data, 128, 128).createModel();
@@ -382,7 +371,7 @@ public class Cosmetics implements ClientModInitializer {
         float fade = p < 0.65f ? 1f : (1f - p) / 0.35f;
         float dir = NeonComfort.slashFlip ? -1f : 1f;
         int rgb = NeonComfort.slashRgb(0L);
-        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TEX));
         int arcs = mode == 3 ? 2 : 1;
         for (int arc = 0; arc < arcs; arc++) {
             SLASH.pivotY = 5f;
@@ -422,7 +411,7 @@ public class Cosmetics implements ClientModInitializer {
             s.zScale = 1.22f;
         }
         int rgb = auraColor();
-        VertexConsumer tv = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
+        VertexConsumer tv = vcp.getBuffer(RenderLayer.getEyes(TEX));
         core.visible = false;
         shell.visible = true;
         HATS.render(m, tv, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (0x38 << 24) | rgb);
@@ -431,42 +420,70 @@ public class Cosmetics implements ClientModInitializer {
         HATS.render(m, tv, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (0xB0 << 24) | rgb);
     }
 
-    /** Хвост: полупрозрачная светящаяся лента со спины; при беге отклоняется назад, на месте слегка колышется. */
+    /** Одна вершина ленты (слой Eyes: светится без теней, смешивается аддитивно). */
+    private static void tv(VertexConsumer vc, Matrix4f mat, float x, float y, float z, int r, int g, int b, int a) {
+        vc.vertex(mat, x / 16f, y / 16f, z / 16f).color(r, g, b, a)
+            .texture(20.5f / 128f, 120.5f / 128f)
+            .overlay(OverlayTexture.DEFAULT_UV).light(FULL_LIGHT).normal(0f, 1f, 0f);
+    }
+
+    /** Хвост: цельная светящаяся лента со спины; при беге отклоняется назад, на месте слегка колышется. */
     static void renderTail(MatrixStack m, VertexConsumerProvider vcp, float age, int mode) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        float length = mode == 2 ? 38f : 26f;
-        float step = length / TAIL_SEGS;
+        float length = mode == 2 ? 40f : 28f;
+        float width = mode == 2 ? 8f : 7f;
+        int n = TAIL_SEGS;
+        float step = length / n;
         double sp = mc.player == null ? 0.0 : mc.player.getVelocity().horizontalLength();
         float lean = (float) Math.min(1.0, sp * 4.5);
         float t = age * 0.12f;
+        float yaw = 0.55f;
+        float dx = (float) Math.cos(yaw);
+        float dz = (float) -Math.sin(yaw);                // направление ширины ленты
+        // центральная линия ленты (в системе тела, пиксели)
+        float[] cx = new float[n + 1];
+        float[] cy = new float[n + 1];
+        float[] cz = new float[n + 1];
+        cy[0] = -6f;
+        cz[0] = 2.8f;
+        for (int i = 0; i < n; i++) {
+            float u = i / (float) (n - 1);
+            float phi = 0.12f + lean * u + 0.10f * (float) Math.sin(t + i * 0.45f) * (0.4f + lean);
+            cx[i + 1] = cx[i];
+            cy[i + 1] = cy[i] + (float) Math.cos(phi) * step;
+            cz[i + 1] = cz[i] + (float) Math.sin(phi) * step;
+        }
+        Matrix4f mat = m.peek().getPositionMatrix();
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TEX));
         int rgb = auraColor();
-        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
-        TAIL.pivotX = 0f;
-        TAIL.pivotY = -6f;
-        TAIL.pivotZ = 2.8f;
-        TAIL.yaw = 0.55f;
-        TAIL.roll = 0.22f;
-        for (int pass = 0; pass < 2; pass++) {            // 0 = мягкое свечение, 1 = ядро
-            float cy = 0f;
-            float cz = 0f;
-            for (int i = 0; i < TAIL_SEGS; i++) {
-                float u = i / (float) (TAIL_SEGS - 1);
-                float phi = 0.12f + lean * 1.0f * u + 0.10f * (float) Math.sin(t + i * 0.45f) * (0.4f + lean);
-                float dy = (float) Math.cos(phi) * step;
-                float dz = (float) Math.sin(phi) * step;
-                ModelPart seg = TAIL.getChild("t" + i);
-                seg.pivotX = 0f;
-                seg.pivotY = cy + dy * 0.5f;
-                seg.pivotZ = cz + dz * 0.5f;
-                seg.pitch = phi;
-                seg.xScale = pass == 0 ? 3f : 1f;
-                seg.yScale = step / 3f * 1.25f;
-                seg.zScale = (1f - 0.8f * u) * (pass == 0 ? 1.5f : 1f);
-                cy += dy;
-                cz += dz;
+        int r = (rgb >> 16) & 255;
+        int g = (rgb >> 8) & 255;
+        int b = rgb & 255;
+        // три прохода: широкое мягкое свечение, ядро, яркая кромка по одной стороне
+        float[][] passes = { { -0.9f, 0.9f, 0.16f }, { -0.5f, 0.5f, 0.50f }, { 0.40f, 0.5f, 1.00f } };
+        for (float[] ps : passes) {
+            for (int i = 0; i < n; i++) {
+                float u0 = i / (float) n;
+                float u1 = (i + 1) / (float) n;
+                float w0 = width * (1f - 0.75f * u0);
+                float w1 = width * (1f - 0.75f * u1);
+                int a0 = (int) (255f * ps[2] * (1f - 0.85f * u0));
+                int a1 = (int) (255f * ps[2] * (1f - 0.85f * u1));
+                float ax0 = cx[i] + dx * ps[0] * w0, az0 = cz[i] + dz * ps[0] * w0;
+                float bx0 = cx[i] + dx * ps[1] * w0, bz0 = cz[i] + dz * ps[1] * w0;
+                float ax1 = cx[i + 1] + dx * ps[0] * w1, az1 = cz[i + 1] + dz * ps[0] * w1;
+                float bx1 = cx[i + 1] + dx * ps[1] * w1, bz1 = cz[i + 1] + dz * ps[1] * w1;
+                // лицевая сторона
+                tv(vc, mat, ax0, cy[i], az0, r, g, b, a0);
+                tv(vc, mat, bx0, cy[i], bz0, r, g, b, a0);
+                tv(vc, mat, bx1, cy[i + 1], bz1, r, g, b, a1);
+                tv(vc, mat, ax1, cy[i + 1], az1, r, g, b, a1);
+                // обратная сторона (обратный порядок вершин), чтобы лента была видна с обеих сторон
+                tv(vc, mat, ax1, cy[i + 1], az1, r, g, b, a1);
+                tv(vc, mat, bx1, cy[i + 1], bz1, r, g, b, a1);
+                tv(vc, mat, bx0, cy[i], bz0, r, g, b, a0);
+                tv(vc, mat, ax0, cy[i], az0, r, g, b, a0);
             }
-            int alpha = pass == 0 ? 0x30 : 0x98;
-            TAIL.render(m, vc, FULL_LIGHT, OverlayTexture.DEFAULT_UV, (alpha << 24) | rgb);
         }
     }
 

@@ -39,6 +39,7 @@ public class CosmeticsFx implements ClientModInitializer {
     private static void tick(MinecraftClient mc) {
         int mode = Modules.AURA_SPARKS.index;
         if (mode <= 0 || mc.player == null || mc.world == null || mc.isPaused()) return;
+        if (mc.options.getPerspective().isFirstPerson()) return;   // в первом лице аура мешает в PvP
         int rgb = Cosmetics.auraColor();
         float r = ((rgb >> 16) & 255) / 255f;
         float g = ((rgb >> 8) & 255) / 255f;
@@ -50,6 +51,7 @@ public class CosmeticsFx implements ClientModInitializer {
             double x = mc.player.getX() + Math.cos(a) * rad;
             double z = mc.player.getZ() + Math.sin(a) * rad;
             double y = mc.player.getY() + Math.random() * 1.9;
+            if (NeonComfort.nearCam(x, y, z, 1.2)) continue;
             Particle p = mc.particleManager.addParticle(ParticleTypes.END_ROD,
                 x, y, z, 0.0, 0.02 + Math.random() * 0.02, 0.0);
             if (p != null) {
