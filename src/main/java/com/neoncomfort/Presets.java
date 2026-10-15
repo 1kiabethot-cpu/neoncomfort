@@ -27,6 +27,7 @@ public final class Presets {
             set(Modules.AURA_SPARKS, "Few");
             set(Modules.HIT_RING, "Ring");
             set(Modules.KILL_LIGHTNING, "Soft");
+            set(Modules.HOTBAR_GLOW, "Thin");
             Modules.BINDS.enabled = true;
             Modules.COMPASS.enabled = true;
         } else if (idx == 2) {                // Neon: фиолетовый стиль с крыльями и кубами
@@ -43,6 +44,9 @@ public final class Presets {
             set(Modules.TAIL, "Short");
             set(Modules.SLASH, "Soft");
             set(Modules.KILL_EFFECT, "Soul");
+            set(Modules.NEON_STARS, "Normal");
+            set(Modules.HOTBAR_GLOW, "Glow");
+            set(Modules.FOOT_GLOW, "Soft");
         } else if (idx == 4) {                // PvP: ничего лишнего, только отметка попадания и мягкий взмах
             set(Modules.HIT_MARKER, "White");
             set(Modules.SLASH, "Soft");

@@ -31,6 +31,7 @@ public final class Hud {
         TextRenderer tr = mc.textRenderer;
 
         if (Modules.TWILIGHT.index > 0) twilight(ctx, mc, Modules.TWILIGHT.index, Modules.TWILIGHT_STYLE.index);
+        stars(ctx, mc, player);
         ScreenFx.render(ctx, mc);
         if (mc.currentScreen == null) hitMarker(ctx, mc);
         if (Modules.CROSSHAIR.index < Modules.CROSSHAIR.values.length - 1 && mc.currentScreen == null
@@ -42,6 +43,7 @@ public final class Hud {
         if (Modules.ARMOR.enabled) armor(ctx, mc, tr, player);
         if (Modules.TARGET.enabled) target(ctx, mc, tr);
         if (Modules.NEARBY_ARMOR.enabled) nearby(ctx, mc, tr, player);
+        hotbarGlow(ctx, mc, player);
     }
 
     private static void dot(DrawContext ctx, int x, int y, int c) {
@@ -259,6 +261,81 @@ public final class Hud {
                 }
             }
         }
+    }
+
+    // ---- Neon Stars: звёзды неба, привязанные к направлению взгляда ----
+    private static final int STARS = 180;
+    private static final float[] ST_A = new float[STARS];
+    private static final float[] ST_B = new float[STARS];
+    private static final float[] ST_P = new float[STARS];
+    private static final float[] ST_U = new float[STARS];
+    static {
+        java.util.Random r = new java.util.Random(20261014L);
+        for (int i = 0; i < STARS; i++) {
+            ST_A[i] = r.nextFloat() * 360f;            // азимут
+            ST_B[i] = 4f + r.nextFloat() * 76f;        // высота над горизонтом, градусы
+            ST_P[i] = r.nextFloat() * 6.283f;          // фаза мерцания
+            ST_U[i] = r.nextFloat();                   // доля второго цвета
+        }
+    }
+
+    private static void stars(DrawContext ctx, MinecraftClient mc, ClientPlayerEntity p) {
+        int mode = Modules.NEON_STARS.index;
+        if (mode <= 0) return;
+        int count = mode == 1 ? 50 : (mode == 2 ? 110 : STARS);
+        int sw = mc.getWindow().getScaledWidth(), sh = mc.getWindow().getScaledHeight();
+        float ppd = sh / 70f;                          // пикселей на градус
+        float yaw = p.getYaw(), pitch = p.getPitch();
+        int px = Math.max(1, sh / 150);
+        long now = System.currentTimeMillis();
+        for (int i = 0; i < count; i++) {
+            float dx = ((ST_A[i] - yaw) % 360f + 540f) % 360f - 180f;
+            float x = sw / 2f + dx * ppd;
+            float y = sh / 2f - (ST_B[i] + pitch) * ppd;
+            if (x < 0 || x >= sw || y < 0 || y >= sh) continue;
+            float tw = 0.55f + 0.45f * (float) Math.sin(now / 420.0 + ST_P[i]);
+            int a = (int) (210 * tw);
+            int rgb = FxColor.pick(Modules.STAR_COLOR, Modules.STAR_COLOR2, ST_U[i], i * 180L);
+            int c = (a << 24) | rgb;
+            boolean big = ST_P[i] > 4.2f;              // часть звёзд крупнее, с лучами
+            int s = big ? px * 2 : px;
+            ctx.fill((int) x, (int) y, (int) x + s, (int) y + s, c);
+            if (big) {
+                int ca = ((a / 2) << 24) | rgb;
+                ctx.fill((int) x - px, (int) y, (int) x, (int) y + s, ca);
+                ctx.fill((int) x + s, (int) y, (int) x + s + px, (int) y + s, ca);
+                ctx.fill((int) x, (int) y - px, (int) x + s, (int) y, ca);
+                ctx.fill((int) x, (int) y + s, (int) x + s, (int) y + s + px, ca);
+            }
+        }
+    }
+
+    // ---- Hotbar Glow: неоновая рамка вокруг выбранного слота ----
+    private static void frame(DrawContext ctx, int x, int y, int w, int h, int t, int argb) {
+        ctx.fill(x, y, x + w, y + t, argb);
+        ctx.fill(x, y + h - t, x + w, y + h, argb);
+        ctx.fill(x, y + t, x + t, y + h - t, argb);
+        ctx.fill(x + w - t, y + t, x + w, y + h - t, argb);
+    }
+
+    private static void hotbarGlow(DrawContext ctx, MinecraftClient mc, ClientPlayerEntity p) {
+        int mode = Modules.HOTBAR_GLOW.index;
+        if (mode <= 0 || mc.currentScreen != null) return;
+        int sw = mc.getWindow().getScaledWidth(), sh = mc.getWindow().getScaledHeight();
+        int slot = p.getInventory().selectedSlot;
+        int x0 = sw / 2 - 92 + slot * 20, y0 = sh - 23, w = 24, h = 23;
+        long now = System.currentTimeMillis();
+        float pulse = 0.65f + 0.35f * (float) Math.sin(now / 260.0);
+        float u = 0.5f + 0.5f * (float) Math.sin(now / 900.0);           // плавное смешивание двух цветов
+        int rgb = FxColor.pick(Modules.HOTBAR_COLOR, Modules.HOTBAR_COLOR2, u, now);
+        if (mode == 3) {                                                   // мягкое сияние вокруг рамки
+            for (int g = 3; g >= 1; g--) {
+                int ga = (int) (pulse * 60 / g);
+                frame(ctx, x0 - g, y0 - g, w + 2 * g, h + 2 * g, 1, (ga << 24) | rgb);
+            }
+        }
+        int th = mode == 2 ? 2 : 1;
+        frame(ctx, x0, y0, w, h, th, ((int) (pulse * 235) << 24) | rgb);
     }
 
     private static final String[] DIRS = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
