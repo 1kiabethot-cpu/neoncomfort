@@ -111,9 +111,9 @@ public final class Modules {
 
     // --- косметика ---
     public static final Module WINGS = Module.option("Wings", true,
-            "OFF", "Void", "Gold", "Ember", "Frost", "Rose");
+            "OFF", "Void", "Gold", "Ember", "Frost", "Rose", "Feather", "Dragon", "Bat", "Butterfly", "Crystal");
     public static final Module HAT = Module.option("Hat", true,
-            "OFF", "Crown", "Halo", "Top Hat", "Cat Ears", "Horns", "Wizard", "China");
+            "OFF", "Crown", "Halo", "Top Hat", "Cat Ears", "Horns", "Wizard", "China", "Antlers", "Bunny", "Headphones", "Pumpkin");
     public static final Module CUBES = Module.option("Cubes", true,
             "OFF", "Few", "Normal", "Many");
     public static final Module CUBE_MOTION = Module.option("Cube Motion", false,
@@ -171,8 +171,12 @@ public final class Modules {
     public static final Module ORBIT_COLOR = Module.option("Orbit Color", false, auraPlus());
     public static final Module ORBIT_COLOR2 = Module.option("Orbit Mix", true, color2Values());
     public static final Module SLASH_COLOR2 = Module.option("Slash Mix", true, color2Values());
+    // --- версия 2.6: свой цвет и смешивание для неоновых крыльев ---
+    public static final Module WING_COLOR = Module.option("Wing Color", false, auraPlus());
+    public static final Module WING_COLOR2 = Module.option("Wing Mix", true, color2Values());
+
     // --- версия 2.5: питомцы (клиентские, видны только вам) ---
-    public static final Module PET = Module.option("Pet", true, "OFF", "Panda", "Frog", "Sniffer", "Bee");
+    public static final Module PET = Module.option("Pet", true, "OFF", "Panda", "Frog", "Sniffer", "Bee", "Ocelot", "Cat", "Fox", "Wolf", "Rabbit", "Parrot", "Axolotl", "Allay");
     public static final Module PET_SIZE = Module.option("Pet Size", false, "Small", "Normal", "Big");
     static {
         PET_SIZE.index = 1;
@@ -221,7 +225,7 @@ public final class Modules {
             CUBE_BURST, AURA_SPARKS, ORBIT, KILL_LIGHTNING, LIGHTNING_COLOR, COMPASS,
             NEON_STARS, STAR_COLOR, STAR_COLOR2, MENU_ANIM);
     public static final List<Module> PAGE6 = List.of(
-            CUBES_COLOR, CUBES_COLOR2, ORBIT_COLOR, ORBIT_COLOR2, SLASH_COLOR2, HOTBAR_FRAME, PET, PET_SIZE);
+            CUBES_COLOR, CUBES_COLOR2, ORBIT_COLOR, ORBIT_COLOR2, SLASH_COLOR2, HOTBAR_FRAME, PET, PET_SIZE, WING_COLOR, WING_COLOR2);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6);
 
     /** Упрощённое меню: только самое нужное на одной странице */

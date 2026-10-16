@@ -30,7 +30,7 @@ import org.joml.Matrix4f;
 public class Cosmetics implements ClientModInitializer {
     static final Identifier TEX = Identifier.of("neoncomfort", "textures/entity/cosmetics.png");
     static final int WING_STYLES = 5;
-    static final int HAT_STYLES = 7;
+    static final int HAT_STYLES = 11;
     static final int[] WING_V = {0, 21, 42, 63, 84};
     static final int MAX_CUBES = 10;
     static final int RING_SEGS = 18;
@@ -77,7 +77,7 @@ public class Cosmetics implements ClientModInitializer {
             root.addChild("wr" + i, ModelPartBuilder.create().mirrored().uv(0, v).cuboid(-24f, 0f, 0f, 24f, 20f, 1f),
                 ModelTransform.pivot(-1.0f, -8.0f, 2.4f));
         }
-        return TexturedModelData.of(data, 128, 128).createModel();
+        return TexturedModelData.of(data, 128, 256).createModel();
     }
 
     private static ModelPart buildCubes() {
@@ -87,7 +87,7 @@ public class Cosmetics implements ClientModInitializer {
             root.addChild("c" + i, ModelPartBuilder.create().uv(0, 108).cuboid(-1.5f, -1.5f, -1.5f, 3f, 3f, 3f),
                 ModelTransform.NONE);
         }
-        return TexturedModelData.of(data, 128, 128).createModel();
+        return TexturedModelData.of(data, 128, 256).createModel();
     }
 
     private static ModelPart buildRings() {
@@ -100,7 +100,7 @@ public class Cosmetics implements ClientModInitializer {
                     ModelTransform.NONE);
             }
         }
-        return TexturedModelData.of(data, 128, 128).createModel();
+        return TexturedModelData.of(data, 128, 256).createModel();
     }
 
     /** Сегменты полумесяца для Slash FX: тонкие плоские пластины, берут пиксели из белой области (0,113). */
@@ -111,7 +111,7 @@ public class Cosmetics implements ClientModInitializer {
             root.addChild("s" + i, ModelPartBuilder.create().uv(0, 113).cuboid(-2.5f, -3f, -0.5f, 5f, 6f, 1f),
                 ModelTransform.NONE);
         }
-        return TexturedModelData.of(data, 128, 128).createModel();
+        return TexturedModelData.of(data, 128, 256).createModel();
     }
 
     private static ModelPart buildHats() {
@@ -172,7 +172,31 @@ public class Cosmetics implements ClientModInitializer {
             shell.addChild("p" + i, ModelPartBuilder.create().uv(0, 113).cuboid(-w / 2f, y, -w / 2f, w, 0.55f, w),
                 ModelTransform.NONE);
         }
-        return TexturedModelData.of(data, 128, 128).createModel();
+        // --- новые шапки (версия 2.6): рога, заячьи уши, наушники, тыква ---
+        h = hats.addChild("hat8", ModelPartBuilder.create(), ModelTransform.NONE);
+        for (int sg = -1; sg <= 1; sg += 2) {
+            int k = (sg + 1) / 2;
+            h.addChild("a" + k, ModelPartBuilder.create().uv(0, 128).cuboid(sg * 2.5f - 0.5f, -14.5f, -0.5f, 1f, 7f, 1f), ModelTransform.NONE);
+            h.addChild("b" + k, ModelPartBuilder.create().uv(0, 128).cuboid(sg > 0 ? 3f : -5f, -12.5f, -0.5f, 2f, 1f, 1f), ModelTransform.NONE);
+            h.addChild("c" + k, ModelPartBuilder.create().uv(0, 128).cuboid(sg > 0 ? 3.5f : -5.5f, -10.5f, -0.5f, 2f, 1f, 1f), ModelTransform.NONE);
+        }
+        h = hats.addChild("hat9", ModelPartBuilder.create(), ModelTransform.NONE);
+        for (int sg = -1; sg <= 1; sg += 2) {
+            int k = (sg + 1) / 2;
+            ModelTransform tr = ModelTransform.of(sg * 2.5f, -8f, 0f, 0f, 0f, sg * 0.22f);
+            h.addChild("e" + k, ModelPartBuilder.create().uv(56, 128).cuboid(-1f, -9f, -0.5f, 2f, 9f, 1f), tr);
+            h.addChild("i" + k, ModelPartBuilder.create().uv(0, 144).cuboid(-0.5f, -8f, -0.85f, 1f, 7f, 0.35f), tr);
+        }
+        h = hats.addChild("hat10", ModelPartBuilder.create(), ModelTransform.NONE);
+        h.addChild("band", ModelPartBuilder.create().uv(56, 144).cuboid(-4.5f, -9.5f, -0.5f, 9f, 1f, 1f), ModelTransform.NONE);
+        h.addChild("sl", ModelPartBuilder.create().uv(56, 144).cuboid(-5.2f, -9.5f, -0.5f, 1f, 6f, 1f), ModelTransform.NONE);
+        h.addChild("sr", ModelPartBuilder.create().uv(56, 144).cuboid(4.2f, -9.5f, -0.5f, 1f, 6f, 1f), ModelTransform.NONE);
+        h.addChild("cl", ModelPartBuilder.create().uv(0, 160).cuboid(-6.7f, -5.5f, -2f, 2f, 4f, 4f), ModelTransform.NONE);
+        h.addChild("cr", ModelPartBuilder.create().uv(0, 160).cuboid(4.7f, -5.5f, -2f, 2f, 4f, 4f), ModelTransform.NONE);
+        h = hats.addChild("hat11", ModelPartBuilder.create(), ModelTransform.NONE);
+        h.addChild("p0", ModelPartBuilder.create().uv(56, 160).cuboid(-3.5f, -13.5f, -3.5f, 7f, 5.5f, 7f), ModelTransform.NONE);
+        h.addChild("p1", ModelPartBuilder.create().uv(0, 176).cuboid(-0.5f, -15.5f, -0.5f, 1f, 2f, 1f), ModelTransform.NONE);
+        return TexturedModelData.of(data, 128, 256).createModel();
     }
 
     // ---------------------------------------------------------------- colors
@@ -441,9 +465,9 @@ public class Cosmetics implements ClientModInitializer {
     }
 
     /** Одна вершина ленты (слой Eyes: светится без теней, смешивается аддитивно). */
-    private static void tv(VertexConsumer vc, Matrix4f mat, float x, float y, float z, int r, int g, int b, int a) {
+    static void tv(VertexConsumer vc, Matrix4f mat, float x, float y, float z, int r, int g, int b, int a) {
         vc.vertex(mat, x / 16f, y / 16f, z / 16f).color(r, g, b, a)
-            .texture(20.5f / 128f, 120.5f / 128f)
+            .texture(20.5f / 128f, 120.5f / 256f)
             .overlay(OverlayTexture.DEFAULT_UV).light(FULL_LIGHT).normal(0f, 1f, 0f);
     }
 
@@ -617,6 +641,17 @@ public class Cosmetics implements ClientModInitializer {
                 matrices.push();
                 model.body.rotate(matrices);
                 WINGS.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
+                matrices.pop();
+            }
+
+            if (wing > WING_STYLES) {   // неоновые крылья из геометрии: перья, перепонки, кристаллы
+                int fl = Modules.WING_FLAP.index;
+                float flapSpeed = fl == 1 ? 0.5f : (fl == 2 ? 1.8f : 1.0f);
+                float flapA = fl == 3 ? 0f : (float) Math.sin(state.age * 0.15f * flapSpeed) * 0.14f;
+                matrices.push();
+                model.body.rotate(matrices);
+                NeonWings.render(matrices, vertexConsumers, wing - WING_STYLES, state.age, flapA, flapSpeed,
+                        mulSize(Modules.WING_SIZE));
                 matrices.pop();
             }
 
