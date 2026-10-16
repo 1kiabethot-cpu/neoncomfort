@@ -31,7 +31,7 @@ import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "2.3.0";
+    public static final String VERSION = "2.5.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -99,6 +99,7 @@ public class NeonComfort implements ClientModInitializer {
         handleWeather(mc);
         handleTrail(mc, p);
         handleNoHurtCam(p);
+        Pets.tick(mc, p);
         handleKill();
         handleLightning(mc);
         handleProjectiles(mc, p);

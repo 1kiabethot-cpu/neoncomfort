@@ -323,11 +323,16 @@ public final class Hud {
         if (mode <= 0 || mc.currentScreen != null) return;
         int sw = mc.getWindow().getScaledWidth(), sh = mc.getWindow().getScaledHeight();
         int slot = p.getInventory().selectedSlot;
-        int x0 = sw / 2 - 92 + slot * 20, y0 = sh - 23, w = 24, h = 23;
+        int ex = Modules.HOTBAR_FRAME.index * 2;                        // шире рамки: под большие уголки ресурспака
+        int x0 = sw / 2 - 92 + slot * 20 - ex, y0 = sh - 23 - ex, w = 24 + 2 * ex, h = 23 + 2 * ex;
         long now = System.currentTimeMillis();
         float pulse = 0.65f + 0.35f * (float) Math.sin(now / 260.0);
         float u = 0.5f + 0.5f * (float) Math.sin(now / 900.0);           // плавное смешивание двух цветов
         int rgb = FxColor.pick(Modules.HOTBAR_COLOR, Modules.HOTBAR_COLOR2, u, now);
+        // поднимаем рамку по глубине, чтобы ресурспак (толстая рамка хотбара, уголки) её не закрывал
+        MatrixStack ms = ctx.getMatrices();
+        ms.push();
+        ms.translate(0f, 0f, 100f);
         if (mode == 3) {                                                   // мягкое сияние вокруг рамки
             for (int g = 3; g >= 1; g--) {
                 int ga = (int) (pulse * 60 / g);
@@ -336,6 +341,7 @@ public final class Hud {
         }
         int th = mode == 2 ? 2 : 1;
         frame(ctx, x0, y0, w, h, th, ((int) (pulse * 235) << 24) | rgb);
+        ms.pop();
     }
 
     private static final String[] DIRS = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };

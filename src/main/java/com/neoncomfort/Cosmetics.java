@@ -177,6 +177,18 @@ public class Cosmetics implements ClientModInitializer {
 
     // ---------------------------------------------------------------- colors
 
+    /** Цвет эффекта: c1 — основной (при auraFirst значение 0 = цвет ауры), c2 — второй цвет для смешивания (OFF = без смешивания). */
+    static int fxColor(Modules.Module c1, Modules.Module c2, boolean auraFirst, float u, long shiftMs) {
+        int i = c1.index;
+        int a;
+        if (auraFirst && i <= 0) a = auraColor();
+        else a = FxColor.base(c1, shiftMs);
+        int j = c2.index;
+        if (j <= 0) return a;
+        int b = Theme.colorRgb(j - 1) & 0xFFFFFF;
+        return FxColor.lerp(a, b, Math.max(0f, Math.min(1f, u)));
+    }
+
     static int auraColor() {
         int idx = Modules.AURA_COLOR.index;
         if (idx <= 0) return Theme.accent() & 0xFFFFFF;
@@ -257,7 +269,8 @@ public class Cosmetics implements ClientModInitializer {
             cube.pitch = a;
         }
         int look = Modules.CUBE_LOOK.index;       // 0 solid, 1 glass, 2 glow
-        int rgb = auraColor();
+        int rgb = fxColor(Modules.CUBES_COLOR, Modules.CUBES_COLOR2, true,
+                0.5f + 0.5f * (float) Math.sin(System.currentTimeMillis() / 900.0), 0L);
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityTranslucent(TEX));
         if (look == 2) {
             setCubeScale(2.2f * cs);
@@ -375,6 +388,9 @@ public class Cosmetics implements ClientModInitializer {
         float fade = p < 0.65f ? 1f : (1f - p) / 0.35f;
         float dir = NeonComfort.slashFlip ? -1f : 1f;
         int rgb = NeonComfort.slashRgb(0L);
+        if (Modules.SLASH_COLOR2.index > 0) {            // второй цвет: цвет плавно меняется по ходу взмаха
+            rgb = FxColor.lerp(rgb, Theme.colorRgb(Modules.SLASH_COLOR2.index - 1) & 0xFFFFFF, p);
+        }
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TEX));
         int arcs = mode == 3 ? 2 : 1;
         for (int arc = 0; arc < arcs; arc++) {
@@ -442,12 +458,12 @@ public class Cosmetics implements ClientModInitializer {
         orbitAngle += dt * (1.6f + (float) Math.min(1.0, sp * 6.0) * 3.5f);
         Matrix4f mat = m.peek().getPositionMatrix();
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TEX));
-        int rgb = auraColor();
-        int r = (rgb >> 16) & 255;
-        int g = (rgb >> 8) & 255;
-        int b = rgb & 255;
         float radius = 17f;
         for (int k = 0; k < n; k++) {
+            int rgb = fxColor(Modules.ORBIT_COLOR, Modules.ORBIT_COLOR2, true, n <= 1 ? 0f : k / (float) (n - 1), k * 200L);
+            int r = (rgb >> 16) & 255;
+            int g = (rgb >> 8) & 255;
+            int b = rgb & 255;
             float a = orbitAngle + k * (float) (Math.PI * 2.0 / n);
             float cx = (float) Math.cos(a) * radius;
             float cz = (float) Math.sin(a) * radius;

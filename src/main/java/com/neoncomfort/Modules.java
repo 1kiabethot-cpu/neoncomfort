@@ -165,6 +165,25 @@ public final class Modules {
         MENU_ANIM.index = 2;     // сохранённый конфиг это перекроет
     }
 
+    // --- версия 2.4: свои цвета для кубов, клинков и зрезов (Aura = как у ауры) и смешивание двух цветов ---
+    public static final Module CUBES_COLOR = Module.option("Cubes Color", false, auraPlus());
+    public static final Module CUBES_COLOR2 = Module.option("Cubes Mix", true, color2Values());
+    public static final Module ORBIT_COLOR = Module.option("Orbit Color", false, auraPlus());
+    public static final Module ORBIT_COLOR2 = Module.option("Orbit Mix", true, color2Values());
+    public static final Module SLASH_COLOR2 = Module.option("Slash Mix", true, color2Values());
+    // --- версия 2.5: питомцы (клиентские, видны только вам) ---
+    public static final Module PET = Module.option("Pet", true, "OFF", "Panda", "Frog", "Sniffer", "Bee");
+    public static final Module PET_SIZE = Module.option("Pet Size", false, "Small", "Normal", "Big");
+    static {
+        PET_SIZE.index = 1;
+    }
+
+    /** размер неоновой рамки хотбара: Slot = по слоту, Wide / Big = шире (под ресурспаки с большими уголками) */
+    public static final Module HOTBAR_FRAME = Module.option("Hotbar Frame", false, "Slot", "Wide", "Big");
+    static {
+        HOTBAR_FRAME.index = 1;
+    }
+
     // --- версия 2.2: следы снарядов, круги прыжка, светящиеся шаги, свечение хотбара, неоновые звёзды ---
     // у каждого эффекта: основной цвет (Color) и второй цвет для смешивания (Mix, OFF = без смешивания)
     public static final Module PROJ_TRAIL = Module.option("Projectile Trail", true, "OFF", "Soft", "Bright", "Spark");
@@ -201,7 +220,9 @@ public final class Modules {
             WING_SIZE, WING_FLAP, CUBE_SIZE, AURA_SIZE, AURA_SPEED, AURA_GLOW, HIT_RING_SIZE,
             CUBE_BURST, AURA_SPARKS, ORBIT, KILL_LIGHTNING, LIGHTNING_COLOR, COMPASS,
             NEON_STARS, STAR_COLOR, STAR_COLOR2, MENU_ANIM);
-    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5);
+    public static final List<Module> PAGE6 = List.of(
+            CUBES_COLOR, CUBES_COLOR2, ORBIT_COLOR, ORBIT_COLOR2, SLASH_COLOR2, HOTBAR_FRAME, PET, PET_SIZE);
+    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6);
 
     /** Упрощённое меню: только самое нужное на одной странице */
     public static final Module MENU_SIMPLE = new Module("Simple Menu", false);
@@ -259,6 +280,14 @@ public final class Modules {
         return a;
     }
 
+    private static String[] auraPlus() {
+        int n = Theme.COLOR_NAMES.length;
+        String[] a = new String[n + 2];
+        a[0] = "Aura";
+        System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
+        a[n + 1] = "Rainbow";
+        return a;
+    }
     private static String[] menuPlus() {
         int n = Theme.COLOR_NAMES.length;
         String[] a = new String[n + 2];
