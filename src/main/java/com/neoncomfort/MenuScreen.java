@@ -2,6 +2,7 @@ package com.neoncomfort;
 
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.text.Text;
 
 import java.util.List;
@@ -10,6 +11,24 @@ public class MenuScreen extends Screen {
     private static final int BTN_W = 140, BTN_H = 22, GAP = 5;
 
     private int page = 0;
+
+    // --- анимация меню ---
+    private final long openMs = System.currentTimeMillis();
+    private long pageMs = openMs;                       // начало «волны» кнопок (при открытии и смене страницы)
+    private long lastNs = 0L;
+    private final java.util.Map<Modules.Module, Float> glow = new java.util.HashMap<>();   // плавное включение кнопок
+
+    private static float ease(float p) {
+        float q = 1f - Math.max(0f, Math.min(1f, p));
+        return 1f - q * q * q;
+    }
+
+    private float openEase() {
+        int a = Modules.MENU_ANIM.index;
+        if (a == 0) return 1f;
+        float dur = a == 1 ? 160f : 360f;
+        return ease((System.currentTimeMillis() - openMs) / dur);
+    }
 
     public MenuScreen() {
         super(Text.literal("NeonComfort"));
@@ -54,13 +73,28 @@ public class MenuScreen extends Screen {
 
     @Override
     public void renderBackground(DrawContext ctx, int mouseX, int mouseY, float delta) {
-        // без размытия: лёгкое затемнение
-        ctx.fill(0, 0, width, height, 0x99000000);
+        // без размытия: лёгкое затемнение (плавно проявляется при открытии)
+        int a = (int) (0x99 * openEase());
+        ctx.fill(0, 0, width, height, a << 24);
     }
 
     @Override
     public void render(DrawContext ctx, int mouseX, int mouseY, float delta) {
         renderBackground(ctx, mouseX, mouseY, delta);
+        int anim = Modules.MENU_ANIM.index;
+        float e = openEase();
+        long nowNs = System.nanoTime();
+        float dt = lastNs == 0L ? 0f : Math.min(0.1f, (nowNs - lastNs) / 1.0e9f);
+        lastNs = nowNs;
+        MatrixStack ms = ctx.getMatrices();
+        ms.push();
+        if (anim > 0 && e < 1f) {                       // панель выезжает снизу и слегка увеличивается
+            float sc = 0.94f + 0.06f * e;
+            float cx = width / 2f, cy = height / 2f;
+            ms.translate(cx, cy + (1f - e) * 18f, 0f);
+            ms.scale(sc, sc, 1f);
+            ms.translate(-cx, -cy, 0f);
+        }
         int x = px(), y = py(), w = panelW(), h = panelH();
         int border = Theme.pulsingAccent();
 
@@ -100,23 +134,44 @@ public class MenuScreen extends Screen {
         }
 
         List<Modules.Module> list = cur();
+        long since = System.currentTimeMillis() - pageMs;
+        float rowDelay = anim == 1 ? 12f : 28f;
+        float rowDur = anim == 1 ? 150f : 260f;
         for (int i = 0; i < list.size(); i++) {
             Modules.Module m = list.get(i);
+            float pr = anim == 0 ? 1f : (since - i * rowDelay) / rowDur;
+            if (pr <= 0f) continue;                       // кнопки появляются по очереди, как волна
+            float er = ease(pr);
             int bx = btnX(i), by = btnY(i);
             boolean on = m.isOn();
+            float target = on ? 1f : 0f;
+            float t = glow.getOrDefault(m, target);
+            if (anim == 0) {
+                t = target;
+            } else {
+                float step = dt * (anim == 1 ? 18f : 9f);
+                t = t < target ? Math.min(target, t + step) : Math.max(target, t - step);
+            }
+            glow.put(m, t);
             boolean hover = mouseX >= bx && mouseX < bx + BTN_W && mouseY >= by && mouseY < by + BTN_H;
-            int base = on ? (hover ? Theme.accent() : Theme.accent2()) : (hover ? 0xFF3A3A55 : Theme.OFF);
-            ctx.fill(bx, by, bx + BTN_W, by + BTN_H, base);
-            if (on) {
-                ctx.fill(bx, by, bx + BTN_W, by + 1, Theme.pulsingAccent());
-                ctx.fill(bx, by + BTN_H - 1, bx + BTN_W, by + BTN_H, Theme.pulsingAccent());
+            ms.push();
+            ms.translate((1f - er) * -16f, 0f, 0f);       // выезжает слева
+            int offC = hover ? 0x3A3A55 : (Theme.OFF & 0xFFFFFF);
+            int onC = (hover ? Theme.accent() : Theme.accent2()) & 0xFFFFFF;
+            ctx.fill(bx, by, bx + BTN_W, by + BTN_H, 0xFF000000 | FxColor.lerp(offC, onC, t));
+            if (t > 0.02f) {
+                int bc = ((int) (255 * t) << 24) | (Theme.pulsingAccent() & 0xFFFFFF);
+                ctx.fill(bx, by, bx + BTN_W, by + 1, bc);
+                ctx.fill(bx, by + BTN_H - 1, bx + BTN_W, by + BTN_H, bc);
             }
             int ty = by + (BTN_H - 8) / 2;
             ctx.drawText(textRenderer, Lang.t(m.name), bx + 8, ty, Theme.TEXT, true);
             String st = Lang.t(m.label());
-            ctx.drawText(textRenderer, st, bx + BTN_W - 8 - textRenderer.getWidth(st), ty,
-                    on ? 0xFFFFFFFF : Theme.TEXT_DIM, true);
+            int vc = 0xFF000000 | FxColor.lerp(Theme.TEXT_DIM & 0xFFFFFF, 0xFFFFFF, t);
+            ctx.drawText(textRenderer, st, bx + BTN_W - 8 - textRenderer.getWidth(st), ty, vc, true);
+            ms.pop();
         }
+        ms.pop();
     }
 
     @Override
@@ -133,11 +188,13 @@ public class MenuScreen extends Screen {
         if (mx >= modeBtnX() && mx < modeBtnX() + MB_W && my >= modeBtnY() && my < modeBtnY() + PB_H) {
             Modules.MENU_SIMPLE.enabled = !Modules.MENU_SIMPLE.enabled;
             page = 0;
+            pageMs = System.currentTimeMillis();
             Config.save();
             return true;
         }
         if (!simple() && mx >= pageBtnX() && mx < pageBtnX() + PB_W && my >= pageBtnY() && my < pageBtnY() + PB_H) {
             page = (page + 1) % Modules.PAGES.size();
+            pageMs = System.currentTimeMillis();
             return true;
         }
         List<Modules.Module> list = cur();

@@ -159,6 +159,12 @@ public final class Modules {
     public static final Module LIGHTNING_COLOR = Module.option("Lightning Color", false, menuPlus());
     public static final Module COMPASS = new Module("Compass Bar", false);
 
+    // --- версия 2.3: анимация меню (OFF / Fast / Smooth), по умолчанию Smooth ---
+    public static final Module MENU_ANIM = Module.option("Menu Animation", false, "OFF", "Fast", "Smooth");
+    static {
+        MENU_ANIM.index = 2;     // сохранённый конфиг это перекроет
+    }
+
     // --- версия 2.2: следы снарядов, круги прыжка, светящиеся шаги, свечение хотбара, неоновые звёзды ---
     // у каждого эффекта: основной цвет (Color) и второй цвет для смешивания (Mix, OFF = без смешивания)
     public static final Module PROJ_TRAIL = Module.option("Projectile Trail", true, "OFF", "Soft", "Bright", "Spark");
@@ -194,7 +200,7 @@ public final class Modules {
     public static final List<Module> PAGE5 = List.of(
             WING_SIZE, WING_FLAP, CUBE_SIZE, AURA_SIZE, AURA_SPEED, AURA_GLOW, HIT_RING_SIZE,
             CUBE_BURST, AURA_SPARKS, ORBIT, KILL_LIGHTNING, LIGHTNING_COLOR, COMPASS,
-            NEON_STARS, STAR_COLOR, STAR_COLOR2);
+            NEON_STARS, STAR_COLOR, STAR_COLOR2, MENU_ANIM);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5);
 
     /** Упрощённое меню: только самое нужное на одной странице */

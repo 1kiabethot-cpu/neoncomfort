@@ -19,6 +19,7 @@ import net.minecraft.entity.Entity;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.entity.projectile.ProjectileEntity;
 import net.minecraft.particle.DustParticleEffect;
 import net.minecraft.particle.ParticleEffect;
 import net.minecraft.particle.ParticleTypes;
@@ -30,7 +31,7 @@ import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "2.1.0";
+    public static final String VERSION = "2.3.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -100,6 +101,9 @@ public class NeonComfort implements ClientModInitializer {
         handleNoHurtCam(p);
         handleKill();
         handleLightning(mc);
+        handleProjectiles(mc, p);
+        handleJump(mc, p);
+        handleFootsteps(mc, p);
         handleSlash(mc, p);
     }
 
@@ -158,6 +162,111 @@ public class NeonComfort implements ClientModInitializer {
     private static LivingEntity killTarget;
     private static int killTicks;
     private static double kx, ky, kz;
+
+    // ---- Projectile Trails: светящийся след за стрелами, перлами, снежками и т.п. ----
+    private void handleProjectiles(MinecraftClient mc, ClientPlayerEntity p) {
+        int mode = Modules.PROJ_TRAIL.index;
+        if (mode == 0 || mc.world == null) return;
+        for (Entity e : mc.world.getEntities()) {
+            if (!(e instanceof ProjectileEntity)) continue;
+            if (e.squaredDistanceTo(p) > 48.0 * 48.0) continue;
+            if (e.getVelocity().lengthSquared() < 0.01) continue;          // воткнувшиеся стрелы не светим
+            float u = 0.5f + 0.5f * (float) Math.sin(e.age * 0.35);
+            int rgb = FxColor.pick(Modules.PROJ_COLOR, Modules.PROJ_COLOR2, u, e.age * 60L);
+            double cy = e.getHeight() * 0.5;
+            for (int k = 0; k < 3; k++) {
+                double f = k / 3.0;
+                double x = e.prevX + (e.getX() - e.prevX) * f;
+                double y = e.prevY + (e.getY() - e.prevY) * f + cy;
+                double z = e.prevZ + (e.getZ() - e.prevZ) * f;
+                if (nearCam(x, y, z, 1.5)) continue;
+                mc.world.addParticle(new DustParticleEffect(rgb, mode == 1 ? 0.8f : 1.1f), x, y, z, 0, 0, 0);
+            }
+            if (mode >= 2 && !nearCam(e.getX(), e.getY() + cy, e.getZ(), 1.5)) {
+                mc.world.addParticle(mode == 2 ? ParticleTypes.END_ROD : ParticleTypes.CRIT,
+                        e.getX(), e.getY() + cy, e.getZ(), 0, 0, 0);
+            }
+        }
+    }
+
+    // ---- Jump Circles: кольцо от ног при прыжке и приземлении ----
+    private boolean jlOnGround = true;
+    private double jlVy = 0.0;
+    private static final java.util.List<double[]> rings = new java.util.ArrayList<>();   // {x, y, z, age, kind}
+
+    private void handleJump(MinecraftClient mc, ClientPlayerEntity p) {
+        int mode = Modules.JUMP_CIRCLE.index;
+        boolean og = p.isOnGround();
+        if (mode > 0 && mc.world != null) {
+            if (jlOnGround && !og && p.getVelocity().y > 0.2 && (mode == 1 || mode == 3)) {
+                rings.add(new double[] { p.getX(), p.getY() + 0.05, p.getZ(), 0, 0 });
+            }
+            if (!jlOnGround && og && jlVy < -0.45 && (mode == 2 || mode == 3)) {
+                rings.add(new double[] { p.getX(), p.getY() + 0.05, p.getZ(), 0, 1 });
+            }
+        }
+        jlOnGround = og;
+        jlVy = p.getVelocity().y;
+        if (rings.isEmpty()) return;
+        if (mc.world == null || mode == 0) {
+            rings.clear();
+            return;
+        }
+        java.util.Iterator<double[]> it = rings.iterator();
+        while (it.hasNext()) {
+            double[] b = it.next();
+            int age = (int) b[3];
+            boolean land = b[4] > 0.5;
+            double r = (land ? 0.5 : 0.35) + age * (land ? 0.34 : 0.26);
+            int n = 14 + age * 2;
+            for (int i = 0; i < n; i++) {
+                double a = i * Math.PI * 2 / n;
+                double x = b[0] + Math.cos(a) * r, z = b[2] + Math.sin(a) * r;
+                if (nearCam(x, b[1], z, 2.0)) continue;
+                float u = 0.5f + 0.5f * (float) Math.sin(a * 2 + age * 0.4);
+                int rgb = FxColor.pick(Modules.JUMP_COLOR, Modules.JUMP_COLOR2, u, age * 80L + i * 20L);
+                mc.world.addParticle(new DustParticleEffect(rgb, 0.9f), x, b[1], z, 0, 0.01, 0);
+                if (i % 5 == 0) mc.world.addParticle(ParticleTypes.END_ROD, x, b[1], z, 0, 0.01, 0);
+            }
+            b[3] += 1;
+            if (b[3] > 9) it.remove();
+        }
+    }
+
+    // ---- Footstep Glow: светящиеся следы шагов ----
+    private double footDist = 0.0, footLx, footLz;
+    private boolean footLeft = true, footInit = false;
+    private int footN = 0;
+
+    private void handleFootsteps(MinecraftClient mc, ClientPlayerEntity p) {
+        int mode = Modules.FOOT_GLOW.index;
+        if (mode == 0 || mc.world == null) {
+            footInit = false;
+            return;
+        }
+        if (!footInit) {
+            footLx = p.getX();
+            footLz = p.getZ();
+            footInit = true;
+        }
+        double dx = p.getX() - footLx, dz = p.getZ() - footLz;
+        double d = Math.sqrt(dx * dx + dz * dz);
+        footLx = p.getX();
+        footLz = p.getZ();
+        if (!p.isOnGround() || d < 0.01) return;
+        footDist += d;
+        if (footDist < 0.65) return;
+        footDist = 0.0;
+        footLeft = !footLeft;
+        double yaw = Math.toRadians(p.getYaw());
+        double rx = -Math.cos(yaw), rz = -Math.sin(yaw);               // вправо от направления взгляда
+        double side = footLeft ? -0.16 : 0.16;
+        double x = p.getX() + rx * side, z = p.getZ() + rz * side, y = p.getY() + 0.03;
+        float u = 0.5f + 0.5f * (float) Math.sin(footN++ * 0.55);
+        int rgb = FxColor.pick(Modules.FOOT_COLOR, Modules.FOOT_COLOR2, u, footN * 90L);
+        mc.world.addParticle(new DustParticleEffect(rgb, mode == 1 ? 0.7f : 1.0f), x, y, z, 0, 0, 0);
+        if (mode == 2) mc.world.addParticle(ParticleTypes.END_ROD, x, y + 0.02, z, 0, 0, 0);
+    }
 
     // ---- Kill Lightning: молния и расходящееся кольцо на месте убийства (частицы, не рядом с камерой) ----
     private static final java.util.List<double[]> bolts = new java.util.ArrayList<>();
