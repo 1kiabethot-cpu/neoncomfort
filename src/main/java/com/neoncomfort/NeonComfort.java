@@ -31,7 +31,7 @@ import net.minecraft.util.hit.HitResult;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "2.6.0";
+    public static final String VERSION = "2.7.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -100,6 +100,8 @@ public class NeonComfort implements ClientModInitializer {
         handleTrail(mc, p);
         handleNoHurtCam(p);
         Pets.tick(mc, p);
+        handleTime(mc);
+        handleTargetMarker(mc);
         handleKill();
         handleLightning(mc);
         handleProjectiles(mc, p);
@@ -267,6 +269,46 @@ public class NeonComfort implements ClientModInitializer {
         int rgb = FxColor.pick(Modules.FOOT_COLOR, Modules.FOOT_COLOR2, u, footN * 90L);
         mc.world.addParticle(new DustParticleEffect(rgb, mode == 1 ? 0.7f : 1.0f), x, y, z, 0, 0, 0);
         if (mode == 2) mc.world.addParticle(ParticleTypes.END_ROD, x, y + 0.02, z, 0, 0, 0);
+    }
+
+    // ---- Time Changer: время суток только на вашем клиенте ----
+    private static final long[] TIMES = { 0L, 23000L, 1000L, 6000L, 12500L, 14500L, 18000L };
+
+    private void handleTime(MinecraftClient mc) {
+        int i = Modules.TIME.index;
+        if (i <= 0 || i >= TIMES.length || mc.world == null) return;
+        mc.world.getLevelProperties().setTimeOfDay(TIMES[i]);
+    }
+
+    // ---- Target Marker: кольцо и/или кристаллы вокруг цели, которую вы бьёте (частицы, не рядом с камерой) ----
+    private int markTick = 0;
+
+    private void handleTargetMarker(MinecraftClient mc) {
+        int mode = Modules.TARGET_MARKER.index;
+        LivingEntity t = killTarget;
+        if (mode == 0 || t == null || mc.world == null || !t.isAlive() || t.getWorld() != mc.world) return;
+        long now = System.currentTimeMillis();
+        if (now - lastHitMs > 3500) return;
+        markTick++;
+        if ((mode == 1 || mode == 3) && markTick % 2 == 0) {
+            double r = t.getWidth() * 0.6 + 0.55;
+            for (int i = 0; i < 8; i++) {
+                double a = markTick * 0.30 + i * Math.PI / 4;
+                double x = t.getX() + Math.cos(a) * r, z = t.getZ() + Math.sin(a) * r, y = t.getY() + 0.05;
+                if (nearCam(x, y, z, 1.2)) continue;
+                int rgb = FxColor.pick(Modules.TARGET_COLOR, Modules.TARGET_COLOR2, i / 7f, now) & 0xFFFFFF;
+                mc.world.addParticle(new DustParticleEffect(rgb, 0.8f), x, y, z, 0, 0, 0);
+            }
+        }
+        if (mode == 2 || mode == 3) {
+            for (int i = 0; i < 3; i++) {
+                double a = -markTick * 0.22 + i * Math.PI * 2 / 3;
+                double x = t.getX() + Math.cos(a) * 0.65, z = t.getZ() + Math.sin(a) * 0.65;
+                double y = t.getY() + t.getHeight() + 0.3 + Math.sin(markTick * 0.2 + i) * 0.08;
+                if (nearCam(x, y, z, 1.2)) continue;
+                mc.world.addParticle(ParticleTypes.END_ROD, x, y, z, 0, 0, 0);
+            }
+        }
     }
 
     // ---- Kill Lightning: молния и расходящееся кольцо на месте убийства (частицы, не рядом с камерой) ----

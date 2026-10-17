@@ -182,6 +182,23 @@ public final class Modules {
         PET_SIZE.index = 1;
     }
 
+    // --- версия 2.7: эффекты, свой туман, время, метка цели, боковое меню, плащи ---
+    public static final Module POTIONS = new Module("Potions HUD", false);
+    public static final Module FOG = Module.option("Custom Fog", true, "OFF", "Light", "Medium", "Thick");
+    public static final Module FOG_COLOR = Module.option("Fog Color", false, menuPlus());
+    public static final Module FOG_COLOR2 = Module.option("Fog Mix", true, color2Values());
+    public static final Module TIME = Module.option("Time Changer", true, "OFF", "Sunrise", "Day", "Noon", "Sunset", "Night", "Midnight");
+    public static final Module TARGET_MARKER = Module.option("Target Marker", true, "OFF", "Ring", "Crystals", "Both");
+    public static final Module TARGET_COLOR = Module.option("Target Color", false, menuPlus());
+    public static final Module TARGET_COLOR2 = Module.option("Target Mix", true, color2Values());
+    public static final Module MENU_LAYOUT = Module.option("Menu Layout", false, "Grid", "Sidebar");
+    public static final Module CAPE = Module.option("Cape", true, "OFF", "Ace", "D20", "Card", "Arcane", "Moon", "Neon");
+    public static final Module CAPE_COLOR = Module.option("Cape Color", false, auraPlus());
+    public static final Module CAPE_COLOR2 = Module.option("Cape Mix", true, color2Values());
+    static {
+        MENU_LAYOUT.index = 1;
+    }
+
     /** размер неоновой рамки хотбара: Slot = по слоту, Wide / Big = шире (под ресурспаки с большими уголками) */
     public static final Module HOTBAR_FRAME = Module.option("Hotbar Frame", false, "Slot", "Wide", "Big");
     static {
@@ -226,7 +243,10 @@ public final class Modules {
             NEON_STARS, STAR_COLOR, STAR_COLOR2, MENU_ANIM);
     public static final List<Module> PAGE6 = List.of(
             CUBES_COLOR, CUBES_COLOR2, ORBIT_COLOR, ORBIT_COLOR2, SLASH_COLOR2, HOTBAR_FRAME, PET, PET_SIZE, WING_COLOR, WING_COLOR2);
-    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6);
+    public static final List<Module> PAGE7 = List.of(
+            POTIONS, FOG, FOG_COLOR, FOG_COLOR2, TIME, TARGET_MARKER, TARGET_COLOR, TARGET_COLOR2,
+            CAPE, CAPE_COLOR, CAPE_COLOR2, MENU_LAYOUT);
+    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6, PAGE7);
 
     /** Упрощённое меню: только самое нужное на одной странице */
     public static final Module MENU_SIMPLE = new Module("Simple Menu", false);

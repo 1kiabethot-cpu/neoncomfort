@@ -40,15 +40,30 @@ public class MenuScreen extends Screen {
         return simple() ? Modules.SIMPLE : Modules.PAGES.get(page);
     }
 
+    // --- боковая панель: список страниц слева (как в современных клиентах), сетка кнопок справа ---
+    private static final int SB_W = 84;
+    private static final String[] PAGE_NAMES = { "HUD", "Look", "Effects", "Visual", "Cosmetics", "Extra", "More" };
+
+    private boolean side() {
+        return !simple() && Modules.MENU_LAYOUT.index == 1 && width >= SB_W + 3 * (BTN_W + GAP) + GAP + 24;
+    }
+    private int sbOff() { return side() ? SB_W : 0; }
+
     private int cols() {
+        if (side()) return 3;
         return Math.max(2, Math.min(3, (width - 20) / (BTN_W + GAP)));
     }
-    private int panelW() { return BTN_W * cols() + GAP * (cols() + 1); }
+    private int panelW() { return sbOff() + BTN_W * cols() + GAP * (cols() + 1); }
     private int panelH() {
         int n = simple() ? Modules.SIMPLE.size() : Modules.PAGE1.size();
         int rows = (n + cols() - 1) / cols();
-        return 40 + rows * (BTN_H + GAP) + GAP;
+        int h = 40 + rows * (BTN_H + GAP) + GAP;
+        if (side()) h = Math.max(h, 40 + Modules.PAGES.size() * (BTN_H + GAP) + GAP);
+        return h;
     }
+    private int sbX() { return px() + 6; }
+    private int sbY(int k) { return py() + 40 + k * (BTN_H + GAP); }
+    private String pageName(int k) { return k < PAGE_NAMES.length ? PAGE_NAMES[k] : "Page " + (k + 1); }
     private int px() { return (width - panelW()) / 2; }
     private int py() { return (height - panelH()) / 2; }
 
@@ -68,7 +83,7 @@ public class MenuScreen extends Screen {
     private int langBtnX() { return px() + 6; }
     private int langBtnY() { return py() + 5; }
 
-    private int btnX(int i) { return px() + GAP + (i % cols()) * (BTN_W + GAP); }
+    private int btnX(int i) { return px() + sbOff() + GAP + (i % cols()) * (BTN_W + GAP); }
     private int btnY(int i) { return py() + 40 + (i / cols()) * (BTN_H + GAP); }
 
     @Override
@@ -125,12 +140,24 @@ public class MenuScreen extends Screen {
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(ml), mbx + MB_W / 2, mby + 3, Theme.TEXT);
 
         // кнопка страницы (справа вверху), только в полном меню
-        if (!simple()) {
+        if (!simple() && !side()) {
             int pbx = pageBtnX(), pby = pageBtnY();
             boolean ph = mouseX >= pbx && mouseX < pbx + PB_W && mouseY >= pby && mouseY < pby + PB_H;
             ctx.fill(pbx, pby, pbx + PB_W, pby + PB_H, ph ? Theme.accent() : Theme.accent2());
             String pl = Lang.t("Page") + " " + (page + 1) + "/" + Modules.PAGES.size();
             ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(pl), pbx + PB_W / 2, pby + 3, Theme.TEXT);
+        }
+
+        if (side()) {                                      // боковая панель: страницы
+            ctx.fill(x + 2, y + 38, x + SB_W - 2, y + h - 4, 0x44000000);
+            for (int k = 0; k < Modules.PAGES.size(); k++) {
+                int sx = sbX(), sy = sbY(k), sw = SB_W - 12;
+                boolean sh = mouseX >= sx && mouseX < sx + sw && mouseY >= sy && mouseY < sy + BTN_H;
+                boolean sel = k == page;
+                ctx.fill(sx, sy, sx + sw, sy + BTN_H, sel ? Theme.accent() : (sh ? 0xFF3A3A55 : (Theme.OFF | 0xFF000000)));
+                if (sel) ctx.fill(sx, sy, sx + 2, sy + BTN_H, 0xFFFFFFFF);
+                ctx.drawText(textRenderer, Lang.t(pageName(k)), sx + 8, sy + (BTN_H - 8) / 2, Theme.TEXT, true);
+            }
         }
 
         List<Modules.Module> list = cur();
@@ -192,7 +219,18 @@ public class MenuScreen extends Screen {
             Config.save();
             return true;
         }
-        if (!simple() && mx >= pageBtnX() && mx < pageBtnX() + PB_W && my >= pageBtnY() && my < pageBtnY() + PB_H) {
+        if (side()) {
+            for (int k = 0; k < Modules.PAGES.size(); k++) {
+                if (mx >= sbX() && mx < sbX() + SB_W - 12 && my >= sbY(k) && my < sbY(k) + BTN_H) {
+                    if (page != k) {
+                        page = k;
+                        pageMs = System.currentTimeMillis();
+                    }
+                    return true;
+                }
+            }
+        }
+        if (!simple() && !side() && mx >= pageBtnX() && mx < pageBtnX() + PB_W && my >= pageBtnY() && my < pageBtnY() + PB_H) {
             page = (page + 1) % Modules.PAGES.size();
             pageMs = System.currentTimeMillis();
             return true;

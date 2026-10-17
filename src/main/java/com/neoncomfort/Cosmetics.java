@@ -28,6 +28,9 @@ import net.minecraft.util.Identifier;
 import org.joml.Matrix4f;
 
 public class Cosmetics implements ClientModInitializer {
+    static final Identifier CAPE_TEX = Identifier.of("neoncomfort", "textures/entity/cape.png");
+    private static float capeLean = 0f;
+    private static long capeLastNs = 0L;
     static final Identifier TEX = Identifier.of("neoncomfort", "textures/entity/cosmetics.png");
     static final int WING_STYLES = 5;
     static final int HAT_STYLES = 11;
@@ -471,6 +474,84 @@ public class Cosmetics implements ClientModInitializer {
             .overlay(OverlayTexture.DEFAULT_UV).light(FULL_LIGHT).normal(0f, 1f, 0f);
     }
 
+    /** вершина плаща с текстурными координатами (атлас cape.png 256x128) */
+    private static void tvt(VertexConsumer vc, Matrix4f mat, float x, float y, float z, float u, float v, int light) {
+        vc.vertex(mat, x / 16f, y / 16f, z / 16f).color(255, 255, 255, 255).texture(u / 256f, v / 128f)
+            .overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0f, 0f, 1f);
+    }
+
+    /**
+     * Cape: плащ со спины. Рисованные плащи (Ace, D20, Card, Arcane, Moon) идут текстурой 40x64, а Neon светится
+     * градиентом Cape Color / Cape Mix. Плащ отклоняется назад при беге и слегка колышется.
+     */
+    static void renderCape(MatrixStack m, VertexConsumerProvider vcp, float age, int style, int light) {
+        MinecraftClient mc = MinecraftClient.getInstance();
+        double sp = mc.player == null ? 0.0 : mc.player.getVelocity().horizontalLength();
+        float target = (float) Math.min(1.0, sp * 7.0);
+        long now = System.nanoTime();
+        float dt = capeLastNs == 0L ? 0.016f : Math.min(0.1f, (now - capeLastNs) / 1.0e9f);
+        capeLastNs = now;
+        capeLean += (target - capeLean) * Math.min(1f, dt * 6f);
+        float lean = capeLean;
+        float t = age * 0.12f;
+        int n = 10;
+        float length = style == 6 ? 22f : 18f;
+        float step = length / n;
+        float width = style == 6 ? 12f : 11f;
+        float[] cy = new float[n + 1];
+        float[] cz = new float[n + 1];
+        cy[0] = 0.4f;
+        cz[0] = 2.3f;
+        for (int i = 0; i < n; i++) {
+            float u = i / (float) (n - 1);
+            float phi = 0.06f + lean * 0.65f * (float) Math.pow(u, 1.2) + 0.05f * (float) Math.sin(t + i * 0.5f) * (0.5f + lean);
+            cy[i + 1] = cy[i] + (float) Math.cos(phi) * step;
+            cz[i + 1] = cz[i] + (float) Math.sin(phi) * step;
+        }
+        Matrix4f mat = m.peek().getPositionMatrix();
+        if (style == 6) {                                    // Neon: светящаяся лента-плащ
+            VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TEX));
+            float[][] passes = { { -0.62f, 0.62f, 0.18f }, { -0.5f, 0.5f, 0.50f }, { -0.5f, -0.40f, 1f }, { 0.40f, 0.5f, 1f } };
+            for (float[] ps : passes) {
+                for (int i = 0; i < n; i++) {
+                    float u0 = i / (float) n, u1 = (i + 1) / (float) n;
+                    float w0 = width * (1f + 0.10f * u0), w1 = width * (1f + 0.10f * u1);
+                    int rgb0 = fxColor(Modules.CAPE_COLOR, Modules.CAPE_COLOR2, true, u0, 0L);
+                    int rgb1 = fxColor(Modules.CAPE_COLOR, Modules.CAPE_COLOR2, true, u1, 0L);
+                    int a0 = (int) (255f * ps[2] * (1f - 0.35f * u0));
+                    int a1 = (int) (255f * ps[2] * (1f - 0.35f * u1));
+                    float lx0 = -ps[0] * w0, rx0 = -ps[1] * w0, lx1 = -ps[0] * w1, rx1 = -ps[1] * w1;
+                    tv(vc, mat, lx0, cy[i], cz[i], (rgb0 >> 16) & 255, (rgb0 >> 8) & 255, rgb0 & 255, a0);
+                    tv(vc, mat, rx0, cy[i], cz[i], (rgb0 >> 16) & 255, (rgb0 >> 8) & 255, rgb0 & 255, a0);
+                    tv(vc, mat, rx1, cy[i + 1], cz[i + 1], (rgb1 >> 16) & 255, (rgb1 >> 8) & 255, rgb1 & 255, a1);
+                    tv(vc, mat, lx1, cy[i + 1], cz[i + 1], (rgb1 >> 16) & 255, (rgb1 >> 8) & 255, rgb1 & 255, a1);
+                    tv(vc, mat, lx1, cy[i + 1], cz[i + 1], (rgb1 >> 16) & 255, (rgb1 >> 8) & 255, rgb1 & 255, a1);
+                    tv(vc, mat, rx1, cy[i + 1], cz[i + 1], (rgb1 >> 16) & 255, (rgb1 >> 8) & 255, rgb1 & 255, a1);
+                    tv(vc, mat, rx0, cy[i], cz[i], (rgb0 >> 16) & 255, (rgb0 >> 8) & 255, rgb0 & 255, a0);
+                    tv(vc, mat, lx0, cy[i], cz[i], (rgb0 >> 16) & 255, (rgb0 >> 8) & 255, rgb0 & 255, a0);
+                }
+            }
+            return;
+        }
+        // рисованный плащ: внешний слой с рисунком и внутренний тёмный слой (чтобы не просвечивало спереди)
+        float u0 = (style - 1) * 40f, v0 = 0f;               // область рисунка 40x64 в cape.png
+        VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(CAPE_TEX));
+        for (int layer = 0; layer < 2; layer++) {
+            float dz = layer == 0 ? 0f : 0.35f;               // внешний слой чуть дальше от тела
+            for (int i = 0; i < n; i++) {
+                float k0 = i / (float) n, k1 = (i + 1) / (float) n;
+                float w0 = width * (1f + 0.10f * k0) * 0.5f, w1 = width * (1f + 0.10f * k1) * 0.5f;
+                float ua = layer == 0 ? 208f : u0, ub = layer == 0 ? 224f : u0 + 40f;   // слева направо (на экране)
+                float va = layer == 0 ? 0f : v0 + 64f * k0, vb = layer == 0 ? 16f : v0 + 64f * k1;
+                if (layer == 0) { va = 0f; vb = 16f; }
+                tvt(vc, mat, w0, cy[i], cz[i] + dz, ua, va, light);
+                tvt(vc, mat, -w0, cy[i], cz[i] + dz, ub, va, light);
+                tvt(vc, mat, -w1, cy[i + 1], cz[i + 1] + dz, ub, vb, light);
+                tvt(vc, mat, w1, cy[i + 1], cz[i + 1] + dz, ua, vb, light);
+            }
+        }
+    }
+
     /** Orbit Blades: светящиеся клинки кружатся вокруг тела; при беге вращаются быстрее. */
     static void renderOrbit(MatrixStack m, VertexConsumerProvider vcp, int mode) {
         MinecraftClient mc = MinecraftClient.getInstance();
@@ -517,8 +598,8 @@ public class Cosmetics implements ClientModInitializer {
     /** Хвост: цельная светящаяся лента со спины; при беге отклоняется назад, на месте слегка колышется. */
     static void renderTail(MatrixStack m, VertexConsumerProvider vcp, float age, int mode) {
         MinecraftClient mc = MinecraftClient.getInstance();
-        float length = mode == 2 ? 46f : 32f;
-        float width = mode == 2 ? 11f : 9f;
+        float length = mode == 2 ? 56f : 42f;
+        float width = mode == 2 ? 17f : 13f;
         int n = TAIL_SEGS;
         float step = length / n;
         double sp = mc.player == null ? 0.0 : mc.player.getVelocity().horizontalLength();
@@ -530,15 +611,15 @@ public class Cosmetics implements ClientModInitializer {
         tailLean += (target - tailLean) * Math.min(1f, dt * 6f);
         float lean = tailLean;
         float t = age * 0.12f;
-        float yaw = 0.55f;
+        float yaw = 0.85f;                               // лента повёрнута под углом, как широкая плоскость
         float dx = (float) Math.cos(yaw);
         float dz = (float) -Math.sin(yaw);                // направление ширины ленты
         // центральная линия ленты (в системе тела, пиксели)
         float[] cx = new float[n + 1];
         float[] cy = new float[n + 1];
         float[] cz = new float[n + 1];
-        cy[0] = -6f;
-        cz[0] = 2.8f;
+        cy[0] = -9f;
+        cz[0] = 2.9f;
         for (int i = 0; i < n; i++) {
             float u = i / (float) (n - 1);
             float phi = 0.10f + lean * 1.35f * (float) Math.pow(u, 1.3) + 0.10f * (float) Math.sin(t + i * 0.45f) * (0.4f + lean);
@@ -553,13 +634,13 @@ public class Cosmetics implements ClientModInitializer {
         int g = (rgb >> 8) & 255;
         int b = rgb & 255;
         // три прохода: широкое мягкое свечение, ядро, яркая кромка по одной стороне
-        float[][] passes = { { -0.9f, 0.9f, 0.16f }, { -0.5f, 0.5f, 0.60f }, { 0.40f, 0.5f, 1.00f } };
+        float[][] passes = { { -0.9f, 0.9f, 0.16f }, { -0.5f, 0.5f, 0.55f }, { 0.34f, 0.5f, 1.00f } };
         for (float[] ps : passes) {
             for (int i = 0; i < n; i++) {
                 float u0 = i / (float) n;
                 float u1 = (i + 1) / (float) n;
-                float w0 = width * (1f - 0.75f * u0);
-                float w1 = width * (1f - 0.75f * u1);
+                float w0 = width * (1f - 0.88f * u0);
+                float w1 = width * (1f - 0.88f * u1);
                 int a0 = (int) (255f * ps[2] * (1f - 0.85f * u0));
                 int a1 = (int) (255f * ps[2] * (1f - 0.85f * u1));
                 float ax0 = cx[i] + dx * ps[0] * w0, az0 = cz[i] + dz * ps[0] * w0;
@@ -611,7 +692,8 @@ public class Cosmetics implements ClientModInitializer {
             int slash = Modules.SLASH.index;
             int tail = Modules.TAIL.index;
             int orbit = Modules.ORBIT.index;
-            if (wing <= 0 && hat <= 0 && cubes <= 0 && rings <= 0 && slash <= 0 && tail <= 0 && orbit <= 0) return;
+            int cape = Modules.CAPE.index;
+            if (wing <= 0 && hat <= 0 && cubes <= 0 && rings <= 0 && slash <= 0 && tail <= 0 && orbit <= 0 && cape <= 0) return;
 
             PlayerEntityModel model = getContextModel();
             VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX));
@@ -674,6 +756,13 @@ public class Cosmetics implements ClientModInitializer {
                 matrices.push();
                 model.body.rotate(matrices);
                 renderTail(matrices, vertexConsumers, state.age, tail);
+                matrices.pop();
+            }
+
+            if (cape > 0) {
+                matrices.push();
+                model.body.rotate(matrices);
+                renderCape(matrices, vertexConsumers, state.age, cape, light);
                 matrices.pop();
             }
 

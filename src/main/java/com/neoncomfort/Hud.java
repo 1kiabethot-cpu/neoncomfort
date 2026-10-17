@@ -8,6 +8,7 @@ import net.minecraft.client.network.PlayerListEntry;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.util.hit.EntityHitResult;
@@ -31,13 +32,16 @@ public final class Hud {
         TextRenderer tr = mc.textRenderer;
 
         if (Modules.TWILIGHT.index > 0) twilight(ctx, mc, Modules.TWILIGHT.index, Modules.TWILIGHT_STYLE.index);
+        if (Modules.FOG.index > 0) fog(ctx, mc);
         stars(ctx, mc, player);
         ScreenFx.render(ctx, mc);
         if (mc.currentScreen == null) hitMarker(ctx, mc);
         if (Modules.CROSSHAIR.index < Modules.CROSSHAIR.values.length - 1 && mc.currentScreen == null
                 && mc.options.getPerspective().isFirstPerson()) crosshair(ctx, mc);
         if (Modules.WATERMARK.enabled) watermark(ctx, mc, tr, player);
-        if (Modules.BINDS.enabled) binds(ctx, mc, tr);
+        float nextY = 6 + 16 * S() + 4;
+        if (Modules.BINDS.enabled) nextY = binds(ctx, mc, tr);
+        if (Modules.POTIONS.enabled) potions(ctx, mc, tr, player, nextY);
         if (Modules.COMPASS.enabled) compass(ctx, mc, tr, player);
         if (Modules.COORDS.enabled) coords(ctx, mc, tr, player);
         if (Modules.ARMOR.enabled) armor(ctx, mc, tr, player);
@@ -344,6 +348,59 @@ public final class Hud {
         ms.pop();
     }
 
+    /** Custom Fog: цветная дымка по экрану, гуще у горизонта; цвет можно смешивать (Fog Mix). */
+    private static void fog(DrawContext ctx, MinecraftClient mc) {
+        int mode = Modules.FOG.index;
+        int w = mc.getWindow().getScaledWidth(), h = mc.getWindow().getScaledHeight();
+        float amax = mode == 1 ? 0.16f : (mode == 2 ? 0.30f : 0.46f);
+        long now = System.currentTimeMillis();
+        int c1 = FxColor.pick(Modules.FOG_COLOR, Modules.FOG_COLOR2, 0f, now) & 0xFFFFFF;
+        int c2 = FxColor.pick(Modules.FOG_COLOR, Modules.FOG_COLOR2, 1f, now) & 0xFFFFFF;
+        int cm = FxColor.lerp(c1, c2, 0.5f) & 0xFFFFFF;
+        int mid = h * 55 / 100;
+        ctx.fillGradient(0, 0, w, mid, ((int) (amax * 0.35f * 255) << 24) | c1, ((int) (amax * 255) << 24) | cm);
+        ctx.fillGradient(0, mid, w, h, ((int) (amax * 255) << 24) | cm, ((int) (amax * 0.55f * 255) << 24) | c2);
+    }
+
+    private static String roman(int n) {
+        String[] r = { "", "I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X" };
+        return n >= 1 && n < r.length ? r[n] : String.valueOf(n);
+    }
+
+    /** Potions HUD: активные эффекты с цветом, уровнем и временем; когда осталось мало, время краснеет. */
+    private static void potions(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity p, float y) {
+        List<StatusEffectInstance> list = new ArrayList<>(p.getStatusEffects());
+        if (list.isEmpty()) return;
+        list.sort((a, b) -> Integer.compare(b.getDuration(), a.getDuration()));
+        int w = 118;
+        int h = 15 + list.size() * 12 + 3;
+        begin(ctx, 6, y);
+        box(ctx, 0, 0, w, h);
+        ctx.drawText(tr, Lang.t("Effects"), 6, 3, Theme.accent(), true);
+        int yy = 15;
+        boolean blink = (System.currentTimeMillis() / 400) % 2 == 0;
+        for (StatusEffectInstance e : list) {
+            int col = 0xFF000000 | (e.getEffectType().value().getColor() & 0xFFFFFF);
+            ctx.fill(6, yy + 1, 10, yy + 7, col);
+            String name = e.getEffectType().value().getName().getString();
+            String lvl = roman(e.getAmplifier() + 1);
+            String head = tr.trimToWidth(name, 58) + (lvl.isEmpty() ? "" : " " + lvl);
+            ctx.drawText(tr, head, 14, yy, Theme.TEXT, true);
+            String time;
+            int tc = Theme.TEXT_DIM;
+            if (e.isInfinite()) {
+                time = "--";
+            } else {
+                int sec = e.getDuration() / 20;
+                time = (sec / 60) + ":" + (sec % 60 < 10 ? "0" : "") + (sec % 60);
+                if (sec < 10 && blink) tc = 0xFFFF5555;
+            }
+            ctx.drawText(tr, time, w - 6 - tr.getWidth(time), yy, tc, true);
+            yy += 12;
+        }
+        end(ctx);
+    }
+
     private static final String[] DIRS = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
 
     /** Компас по центру сверху: стороны света, деления и текущий азимут в градусах. */
@@ -378,7 +435,7 @@ public final class Hud {
     }
 
     /** Список биндов слева под ватермаркой: меню, зум и включённые переключатели. */
-    private static void binds(DrawContext ctx, MinecraftClient mc, TextRenderer tr) {
+    private static float binds(DrawContext ctx, MinecraftClient mc, TextRenderer tr) {
         List<String[]> rows = new ArrayList<>();
         rows.add(new String[] { "Menu", NeonComfort.menuKeyLabel() });
         if (Modules.ZOOM.enabled) rows.add(new String[] { "Zoom", NeonComfort.zoomKeyLabel() });
@@ -401,6 +458,7 @@ public final class Hud {
             yy += 11;
         }
         end(ctx);
+        return y + h * S() + 4;
     }
 
     /** общий масштаб HUD (0.8 = на 20% меньше) */
