@@ -41,19 +41,21 @@ public class MenuScreen extends Screen {
     }
 
     // --- боковая панель: список страниц слева (как в современных клиентах), сетка кнопок справа ---
-    private static final int SB_W = 84;
+    private static final int SB_W = 70;
+    private static final int BW_SIDE = 124;     // ширина кнопок в режиме боковой панели
     private static final String[] PAGE_NAMES = { "HUD", "Look", "Effects", "Visual", "Cosmetics", "Extra", "More" };
 
     private boolean side() {
-        return !simple() && Modules.MENU_LAYOUT.index == 1 && width >= SB_W + 3 * (BTN_W + GAP) + GAP + 24;
+        return !simple() && Modules.MENU_LAYOUT.index == 1 && width >= SB_W + 3 * (BW_SIDE + GAP) + GAP + 16;
     }
     private int sbOff() { return side() ? SB_W : 0; }
+    private int bw() { return side() ? BW_SIDE : BTN_W; }
 
     private int cols() {
         if (side()) return 3;
-        return Math.max(2, Math.min(3, (width - 20) / (BTN_W + GAP)));
+        return Math.max(2, Math.min(3, (width - 20) / (bw() + GAP)));
     }
-    private int panelW() { return sbOff() + BTN_W * cols() + GAP * (cols() + 1); }
+    private int panelW() { return sbOff() + bw() * cols() + GAP * (cols() + 1); }
     private int panelH() {
         int n = simple() ? Modules.SIMPLE.size() : Modules.PAGE1.size();
         int rows = (n + cols() - 1) / cols();
@@ -83,7 +85,7 @@ public class MenuScreen extends Screen {
     private int langBtnX() { return px() + 6; }
     private int langBtnY() { return py() + 5; }
 
-    private int btnX(int i) { return px() + sbOff() + GAP + (i % cols()) * (BTN_W + GAP); }
+    private int btnX(int i) { return px() + sbOff() + GAP + (i % cols()) * (bw() + GAP); }
     private int btnY(int i) { return py() + 40 + (i / cols()) * (BTN_H + GAP); }
 
     @Override
@@ -180,22 +182,22 @@ public class MenuScreen extends Screen {
                 t = t < target ? Math.min(target, t + step) : Math.max(target, t - step);
             }
             glow.put(m, t);
-            boolean hover = mouseX >= bx && mouseX < bx + BTN_W && mouseY >= by && mouseY < by + BTN_H;
+            boolean hover = mouseX >= bx && mouseX < bx + bw() && mouseY >= by && mouseY < by + BTN_H;
             ms.push();
             ms.translate((1f - er) * -16f, 0f, 0f);       // выезжает слева
             int offC = hover ? 0x3A3A55 : (Theme.OFF & 0xFFFFFF);
             int onC = (hover ? Theme.accent() : Theme.accent2()) & 0xFFFFFF;
-            ctx.fill(bx, by, bx + BTN_W, by + BTN_H, 0xFF000000 | FxColor.lerp(offC, onC, t));
+            ctx.fill(bx, by, bx + bw(), by + BTN_H, 0xFF000000 | FxColor.lerp(offC, onC, t));
             if (t > 0.02f) {
                 int bc = ((int) (255 * t) << 24) | (Theme.pulsingAccent() & 0xFFFFFF);
-                ctx.fill(bx, by, bx + BTN_W, by + 1, bc);
-                ctx.fill(bx, by + BTN_H - 1, bx + BTN_W, by + BTN_H, bc);
+                ctx.fill(bx, by, bx + bw(), by + 1, bc);
+                ctx.fill(bx, by + BTN_H - 1, bx + bw(), by + BTN_H, bc);
             }
             int ty = by + (BTN_H - 8) / 2;
             ctx.drawText(textRenderer, Lang.t(m.name), bx + 8, ty, Theme.TEXT, true);
             String st = Lang.t(m.label());
             int vc = 0xFF000000 | FxColor.lerp(Theme.TEXT_DIM & 0xFFFFFF, 0xFFFFFF, t);
-            ctx.drawText(textRenderer, st, bx + BTN_W - 8 - textRenderer.getWidth(st), ty, vc, true);
+            ctx.drawText(textRenderer, st, bx + bw() - 8 - textRenderer.getWidth(st), ty, vc, true);
             ms.pop();
         }
         ms.pop();
@@ -238,7 +240,7 @@ public class MenuScreen extends Screen {
         List<Modules.Module> list = cur();
         for (int i = 0; i < list.size(); i++) {
             int bx = btnX(i), by = btnY(i);
-            if (mx >= bx && mx < bx + BTN_W && my >= by && my < by + BTN_H) {
+            if (mx >= bx && mx < bx + bw() && my >= by && my < by + BTN_H) {
                 list.get(i).click();
                 if (list.get(i) == Modules.PRESET) Presets.apply(Modules.PRESET.index);
                 Config.save();
