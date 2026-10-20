@@ -17,11 +17,25 @@ public final class Lite {
         List<Modules.Module> res = new ArrayList<>();
         for (int pg = 1; pg < Modules.PAGES.size(); pg++) {
             for (Modules.Module m : Modules.PAGES.get(pg)) {
-                if (m == Modules.FPS_BOOST) continue;
+                if (m == Modules.FPS_BOOST || keepHud(m)) continue;
                 if (!m.isOption() || m.zeroIsOff) res.add(m);
             }
         }
         return res;
+    }
+
+    /** базовый HUD, который Lite не трогает: ватермарка, координаты, броня, пинг, цель, прицел */
+    private static boolean keepHud(Modules.Module m) {
+        return m == Modules.WATERMARK || m == Modules.COORDS || m == Modules.ARMOR || m == Modules.PING_TIME
+                || m == Modules.TARGET || m == Modules.NEARBY_ARMOR || m == Modules.CROSSHAIR
+                || m == Modules.CROSSHAIR_COLOR || m == Modules.CROSSHAIR_SIZE || m == Modules.CROSSHAIR_OUTLINE;
+    }
+
+    /** подпись текущего набора пунктов: если раскладка меню изменилась, старая копия настроек не применяется */
+    private static String signature() {
+        int h = 7;
+        for (Modules.Module m : Modules.ALL) h = h * 31 + m.name.hashCode();
+        return Modules.ALL.size() + "." + h;
     }
 
     /** выключить все эффекты на страницах 2-5 (кроме FPS Boost); используется Lite и пресетами */
@@ -81,7 +95,7 @@ public final class Lite {
     // --- сохранение копии настроек в конфиг ---
     static String serialize() {
         if (backup == null) return "";
-        StringBuilder sb = new StringBuilder();
+        StringBuilder sb = new StringBuilder(signature() + "|");
         for (int i = 0; i < backup.length; i++) {
             if (i > 0) sb.append(',');
             sb.append(backup[i]);
@@ -92,6 +106,9 @@ public final class Lite {
     static void deserialize(String s) {
         backup = null;
         if (s == null || s.trim().isEmpty()) return;
+        int bar = s.indexOf('|');
+        if (bar < 0 || !s.substring(0, bar).equals(signature())) return;     // раскладка пунктов другая: копия не подходит
+        s = s.substring(bar + 1);
         try {
             String[] t = s.trim().split(",");
             int[] a = new int[t.length];

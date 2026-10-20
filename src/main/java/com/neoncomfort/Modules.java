@@ -192,7 +192,7 @@ public final class Modules {
     public static final Module TARGET_COLOR = Module.option("Target Color", false, menuPlus());
     public static final Module TARGET_COLOR2 = Module.option("Target Mix", true, color2Values());
     public static final Module MENU_LAYOUT = Module.option("Menu Layout", false, "Grid", "Sidebar");
-    public static final Module CAPE = Module.option("Cape", true, "OFF", "Ace", "D20", "Card", "Arcane", "Moon", "Neon");
+    public static final Module CAPE = Module.option("Cape", true, "OFF", "Ace", "D20", "Card", "Arcane", "Moon", "Rain", "Snow", "Thunder", "Wind", "Sun", "Fire", "Forest", "Cosmos", "Shadow", "Royal", "Creeper", "Ender", "Neon");
     public static final Module CAPE_COLOR = Module.option("Cape Color", false, auraPlus());
     public static final Module CAPE_COLOR2 = Module.option("Cape Mix", true, color2Values());
     static {
@@ -223,29 +223,32 @@ public final class Modules {
     public static final Module STAR_COLOR = Module.option("Stars Color", false, menuPlus());
     public static final Module STAR_COLOR2 = Module.option("Stars Mix", true, color2Values());
 
-    public static final List<Module> PAGE1 = List.of(
-            WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, FULLBRIGHT, AUTOSPRINT, ZOOM, NEARBY_ARMOR,
-            CROSSHAIR, CROSSHAIR_COLOR, TRAIL, MENU_COLOR, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, WEATHER);
-    public static final List<Module> PAGE2 = List.of(
-            PRESET, TWILIGHT, TWILIGHT_STYLE, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE, HIT_VOLUME, FPS_BOOST,
-            MENU_THEME, HUD_SIZE, HIT_MARKER, BINDS, SLASH, SLASH_COLOR, TAIL, HOTBAR_GLOW, HOTBAR_COLOR, HOTBAR_COLOR2);
-    public static final List<Module> PAGE3 = List.of(
-            HIT_COLOR, HIT_COLOR2, HIT_EFFECT, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR,
-            TRAIL_COLOR2, TRAIL_EFFECT, TRAIL_AMOUNT, TRAIL_GLOW, TRAIL_EFFECT_COLOR,
-            PROJ_TRAIL, PROJ_COLOR, PROJ_COLOR2, FOOT_GLOW, FOOT_COLOR, FOOT_COLOR2);
-    public static final List<Module> PAGE4 = List.of(
-            SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR, KILL_EFFECT, KILL_COLOR,
-            WINGS, HAT, CUBES, CUBE_MOTION, CUBE_LOOK, AURA_RINGS, HIT_RING, AURA_COLOR,
+    // ===== страницы меню (боковая панель): Main = всё, что не про визуалы; остальные по темам =====
+    public static final List<Module> PAGE1 = List.of(   // Main / Основное
+            MENU_THEME, MENU_COLOR, MENU_LAYOUT, MENU_ANIM, HUD_SIZE, PRESET, FPS_BOOST, FULLBRIGHT,
+            AUTOSPRINT, ZOOM, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, HIT_VOLUME);
+    public static final List<Module> PAGE2 = List.of(   // HUD
+            WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, NEARBY_ARMOR, BINDS, POTIONS, COMPASS,
+            CROSSHAIR, CROSSHAIR_COLOR, CROSSHAIR_SIZE, CROSSHAIR_OUTLINE,
+            HOTBAR_GLOW, HOTBAR_COLOR, HOTBAR_COLOR2, HOTBAR_FRAME, HIT_MARKER);
+    public static final List<Module> PAGE3 = List.of(   // World / Мир
+            WEATHER, TIME, FOG, FOG_COLOR, FOG_COLOR2, TWILIGHT, TWILIGHT_STYLE,
+            NEON_STARS, STAR_COLOR, STAR_COLOR2, SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR);
+    public static final List<Module> PAGE4 = List.of(   // Combat / Бой
+            HIT_EFFECT, HIT_COLOR, HIT_COLOR2, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR, HIT_RING, HIT_RING_SIZE,
+            SLASH, SLASH_COLOR, SLASH_COLOR2, KILL_EFFECT, KILL_COLOR, KILL_LIGHTNING, LIGHTNING_COLOR,
+            TARGET_MARKER, TARGET_COLOR, TARGET_COLOR2);
+    public static final List<Module> PAGE5 = List.of(   // Movement / Движение
+            TRAIL, TRAIL_EFFECT, TRAIL_COLOR2, TRAIL_AMOUNT, TRAIL_GLOW, TRAIL_EFFECT_COLOR,
+            PROJ_TRAIL, PROJ_COLOR, PROJ_COLOR2, FOOT_GLOW, FOOT_COLOR, FOOT_COLOR2,
             JUMP_CIRCLE, JUMP_COLOR, JUMP_COLOR2);
-    public static final List<Module> PAGE5 = List.of(
-            WING_SIZE, WING_FLAP, CUBE_SIZE, AURA_SIZE, AURA_SPEED, AURA_GLOW, HIT_RING_SIZE,
-            CUBE_BURST, AURA_SPARKS, ORBIT, KILL_LIGHTNING, LIGHTNING_COLOR, COMPASS,
-            NEON_STARS, STAR_COLOR, STAR_COLOR2, MENU_ANIM);
-    public static final List<Module> PAGE6 = List.of(
-            CUBES_COLOR, CUBES_COLOR2, ORBIT_COLOR, ORBIT_COLOR2, SLASH_COLOR2, HOTBAR_FRAME, PET, PET_SIZE, WING_COLOR, WING_COLOR2);
-    public static final List<Module> PAGE7 = List.of(
-            POTIONS, FOG, FOG_COLOR, FOG_COLOR2, TIME, TARGET_MARKER, TARGET_COLOR, TARGET_COLOR2,
-            CAPE, CAPE_COLOR, CAPE_COLOR2, MENU_LAYOUT);
+    public static final List<Module> PAGE6 = List.of(   // Aura / Аура
+            AURA_RINGS, AURA_COLOR, AURA_SIZE, AURA_SPEED, AURA_GLOW, AURA_SPARKS,
+            CUBES, CUBE_MOTION, CUBE_LOOK, CUBE_SIZE, CUBE_BURST, CUBES_COLOR, CUBES_COLOR2,
+            ORBIT, ORBIT_COLOR, ORBIT_COLOR2);
+    public static final List<Module> PAGE7 = List.of(   // Cosmetics / Косметика
+            WINGS, WING_SIZE, WING_FLAP, WING_COLOR, WING_COLOR2, CAPE, CAPE_COLOR, CAPE_COLOR2,
+            TAIL, HAT, PET, PET_SIZE);
     public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6, PAGE7);
 
     /** Упрощённое меню: только самое нужное на одной странице */

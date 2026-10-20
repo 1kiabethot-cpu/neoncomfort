@@ -29,6 +29,7 @@ import org.joml.Matrix4f;
 
 public class Cosmetics implements ClientModInitializer {
     static final Identifier CAPE_TEX = Identifier.of("neoncomfort", "textures/entity/cape.png");
+    static final int NEON_CAPE = 18;               // индекс светящегося плаща (после 17 нарисованных)
     private static float capeLean = 0f;
     private static long capeLastNs = 0L;
     static final Identifier TEX = Identifier.of("neoncomfort", "textures/entity/cosmetics.png");
@@ -476,7 +477,7 @@ public class Cosmetics implements ClientModInitializer {
 
     /** вершина плаща с текстурными координатами (атлас cape.png 256x128) */
     private static void tvt(VertexConsumer vc, Matrix4f mat, float x, float y, float z, float u, float v, int light) {
-        vc.vertex(mat, x / 16f, y / 16f, z / 16f).color(255, 255, 255, 255).texture(u / 256f, v / 128f)
+        vc.vertex(mat, x / 16f, y / 16f, z / 16f).color(255, 255, 255, 255).texture(u / 256f, v / 192f)
             .overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0f, 0f, 1f);
     }
 
@@ -495,9 +496,9 @@ public class Cosmetics implements ClientModInitializer {
         float lean = capeLean;
         float t = age * 0.12f;
         int n = 10;
-        float length = style == 6 ? 22f : 18f;
+        float length = style == NEON_CAPE ? 22f : 18f;
         float step = length / n;
-        float width = style == 6 ? 12f : 11f;
+        float width = style == NEON_CAPE ? 12f : 11f;
         float[] cy = new float[n + 1];
         float[] cz = new float[n + 1];
         cy[0] = 0.4f;
@@ -509,7 +510,7 @@ public class Cosmetics implements ClientModInitializer {
             cz[i + 1] = cz[i] + (float) Math.sin(phi) * step;
         }
         Matrix4f mat = m.peek().getPositionMatrix();
-        if (style == 6) {                                    // Neon: светящаяся лента-плащ
+        if (style == NEON_CAPE) {                                    // Neon: светящаяся лента-плащ
             VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TEX));
             float[][] passes = { { -0.62f, 0.62f, 0.18f }, { -0.5f, 0.5f, 0.50f }, { -0.5f, -0.40f, 1f }, { 0.40f, 0.5f, 1f } };
             for (float[] ps : passes) {
@@ -534,7 +535,16 @@ public class Cosmetics implements ClientModInitializer {
             return;
         }
         // рисованный плащ: внешний слой с рисунком и внутренний тёмный слой (чтобы не просвечивало спереди)
-        float u0 = (style - 1) * 40f, v0 = 0f;               // область рисунка 40x64 в cape.png
+        int idx = style - 1;                                  // 0..16: нарисованные плащи
+        float u0, v0;                                         // область рисунка 40x64 в cape.png
+        if (idx < 5) {
+            u0 = idx * 40f;
+            v0 = 0f;
+        } else {
+            int j = idx - 5;
+            u0 = (j % 6) * 40f;
+            v0 = 64f * (1 + j / 6);
+        }
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(CAPE_TEX));
         for (int layer = 0; layer < 2; layer++) {
             float dz = layer == 0 ? 0f : 0.35f;               // внешний слой чуть дальше от тела

@@ -43,7 +43,7 @@ public class MenuScreen extends Screen {
     // --- боковая панель: список страниц слева (как в современных клиентах), сетка кнопок справа ---
     private static final int SB_W = 70;
     private static final int BW_SIDE = 124;     // ширина кнопок в режиме боковой панели
-    private static final String[] PAGE_NAMES = { "HUD", "Look", "Effects", "Visual", "Cosmetics", "Extra", "More" };
+    private static final String[] PAGE_NAMES = { "Main", "HUD", "World", "Combat", "Movement", "Aura", "Cosmetics" };
 
     private boolean side() {
         return !simple() && Modules.MENU_LAYOUT.index == 1 && width >= SB_W + 3 * (BW_SIDE + GAP) + GAP + 16;
@@ -57,7 +57,11 @@ public class MenuScreen extends Screen {
     }
     private int panelW() { return sbOff() + bw() * cols() + GAP * (cols() + 1); }
     private int panelH() {
-        int n = simple() ? Modules.SIMPLE.size() : Modules.PAGE1.size();
+        int n = Modules.SIMPLE.size();
+        if (!simple()) {
+            n = 0;
+            for (List<Modules.Module> pg : Modules.PAGES) n = Math.max(n, pg.size());
+        }
         int rows = (n + cols() - 1) / cols();
         int h = 40 + rows * (BTN_H + GAP) + GAP;
         if (side()) h = Math.max(h, 40 + Modules.PAGES.size() * (BTN_H + GAP) + GAP);

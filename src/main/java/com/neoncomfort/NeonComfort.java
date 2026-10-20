@@ -28,10 +28,11 @@ import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.hit.HitResult;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "2.7.0";
+    public static final String VERSION = "2.8.1";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -73,6 +74,13 @@ public class NeonComfort implements ClientModInitializer {
             return ActionResult.PASS;
         });
         ClientTickEvents.END_CLIENT_TICK.register(this::tick);
+        // Погода и время применяем перед отрисовкой каждого кадра: пакеты сервера приходят между тиками,
+        // и иначе в некоторых кадрах мелькает серверная погода/время (мерцание).
+        WorldRenderEvents.START.register(ctx -> {
+            MinecraftClient m = MinecraftClient.getInstance();
+            handleWeather(m);
+            handleTime(m);
+        });
 
         // Кнопка в меню паузы — удобно на телефоне, где нет RShift
         ScreenEvents.AFTER_INIT.register((client, screen, w, h) -> {
