@@ -33,6 +33,7 @@ public final class Hud {
 
         if (Modules.TWILIGHT.index > 0) twilight(ctx, mc, Modules.TWILIGHT.index, Modules.TWILIGHT_STYLE.index);
         if (Modules.FOG.index > 0) fog(ctx, mc);
+        if (Modules.WORLD_FX.index > 0 || Modules.SOFT_SHADER.index > 0) WorldFx.render(ctx, mc);
         stars(ctx, mc, player);
         ScreenFx.render(ctx, mc);
         if (mc.currentScreen == null) hitMarker(ctx, mc);

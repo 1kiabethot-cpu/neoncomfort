@@ -43,7 +43,7 @@ public class MenuScreen extends Screen {
     // --- боковая панель: список страниц слева (как в современных клиентах), сетка кнопок справа ---
     private static final int SB_W = 70;
     private static final int BW_SIDE = 124;     // ширина кнопок в режиме боковой панели
-    private static final String[] PAGE_NAMES = { "Main", "HUD", "World", "Combat", "Movement", "Aura", "Cosmetics" };
+    private static final String[] PAGE_NAMES = { "Main", "HUD", "World", "Combat", "Movement", "Aura", "Cosmetics", "Visuals" };
 
     private boolean side() {
         return !simple() && Modules.MENU_LAYOUT.index == 1 && width >= SB_W + 3 * (BW_SIDE + GAP) + GAP + 16;

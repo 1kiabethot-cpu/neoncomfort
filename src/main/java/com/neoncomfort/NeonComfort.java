@@ -109,6 +109,8 @@ public class NeonComfort implements ClientModInitializer {
         handleNoHurtCam(p);
         Pets.tick(mc, p);
         handleTime(mc);
+        WorldFx.tick(mc);
+        WorldParticles.tick(mc);
         handleTargetMarker(mc);
         handleKill();
         handleLightning(mc);

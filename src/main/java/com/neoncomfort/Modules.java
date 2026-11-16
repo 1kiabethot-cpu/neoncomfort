@@ -205,6 +205,29 @@ public final class Modules {
         HOTBAR_FRAME.index = 1;
     }
 
+    // --- версия 2.9: World FX (кровавая луна, море, космос, сияние) и лёгкий Soft Shader ---
+    public static final Module WORLD_FX = Module.option("World FX", true,
+            "OFF", "Blood Moon", "Ocean", "Space", "Aurora", "Dreamy",
+            "Synthwave", "Rainbow", "Pulse", "Inferno");
+    public static final Module WORLD_FX_POWER = Module.option("World FX Power", false,
+            "Medium", "Soft", "Strong");
+    public static final Module SOFT_SHADER = Module.option("Soft Shader", true,
+            "OFF", "Soft", "Vivid", "Cinematic", "Neon", "Moody", "Bloom");
+
+    // --- версия 3.0: Visuals (частицы мира, волны пульса, визуал полёта) ---
+    public static final Module WORLD_PARTS = Module.option("World Particles", true,
+            "OFF", "Fireflies", "Snow", "Sakura", "Embers", "Stars", "Magic", "Neon Dust");
+    public static final Module WORLD_PARTS_AMOUNT = Module.option("World Particles Amount", false,
+            "Normal", "Few", "Many");
+    public static final Module WORLD_PARTS_COLOR = Module.option("World Particles Color", false, autoPlus());
+    public static final Module WORLD_PARTS_COLOR2 = Module.option("World Particles Mix", true, color2Values());
+    public static final Module PULSE_WAVE = Module.option("Pulse Wave", true, "OFF", "Slow", "Fast", "Double");
+    public static final Module PULSE_COLOR = Module.option("Pulse Color", false, menuPlus());
+    public static final Module PULSE_COLOR2 = Module.option("Pulse Mix", true, color2Values());
+    public static final Module FLY_FX = Module.option("Fly Visuals", true, "OFF", "Ribbon", "Spiral", "Wind");
+    public static final Module FLY_COLOR = Module.option("Fly Color", false, menuPlus());
+    public static final Module FLY_COLOR2 = Module.option("Fly Mix", true, color2Values());
+
     // --- версия 2.2: следы снарядов, круги прыжка, светящиеся шаги, свечение хотбара, неоновые звёзды ---
     // у каждого эффекта: основной цвет (Color) и второй цвет для смешивания (Mix, OFF = без смешивания)
     public static final Module PROJ_TRAIL = Module.option("Projectile Trail", true, "OFF", "Soft", "Bright", "Spark");
@@ -249,7 +272,12 @@ public final class Modules {
     public static final List<Module> PAGE7 = List.of(   // Cosmetics / Косметика
             WINGS, WING_SIZE, WING_FLAP, WING_COLOR, WING_COLOR2, CAPE, CAPE_COLOR, CAPE_COLOR2,
             TAIL, HAT, PET, PET_SIZE);
-    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6, PAGE7);
+    public static final List<Module> PAGE8 = List.of(   // Visuals / Визуал
+            WORLD_FX, WORLD_FX_POWER, SOFT_SHADER,
+            WORLD_PARTS, WORLD_PARTS_AMOUNT, WORLD_PARTS_COLOR, WORLD_PARTS_COLOR2,
+            PULSE_WAVE, PULSE_COLOR, PULSE_COLOR2,
+            FLY_FX, FLY_COLOR, FLY_COLOR2);
+    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6, PAGE7, PAGE8);
 
     /** Упрощённое меню: только самое нужное на одной странице */
     public static final Module MENU_SIMPLE = new Module("Simple Menu", false);
@@ -311,6 +339,14 @@ public final class Modules {
         int n = Theme.COLOR_NAMES.length;
         String[] a = new String[n + 2];
         a[0] = "Aura";
+        System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
+        a[n + 1] = "Rainbow";
+        return a;
+    }
+    private static String[] autoPlus() {
+        int n = Theme.COLOR_NAMES.length;
+        String[] a = new String[n + 2];
+        a[0] = "Auto";
         System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
         a[n + 1] = "Rainbow";
         return a;

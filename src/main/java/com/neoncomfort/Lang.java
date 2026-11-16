@@ -8,9 +8,20 @@ public final class Lang {
     private static final Map<String, String> UK = new HashMap<>();
 
     private static void a(String en, String uk) { UK.put(en, uk); }
+    private static void b(String en, String uk) { UK.putIfAbsent(en, uk); }
 
     static {
         // --- \u043c\u0435\u043d\u044e ---
+        a("World FX", "\u0421\u0432\u0456\u0442 FX");
+        a("World FX Power", "\u0421\u0438\u043b\u0430 \u0441\u0432\u0456\u0442\u0443 FX");
+        a("Soft Shader", "\u041b\u0430\u0439\u0442-\u0448\u0435\u0439\u0434\u0435\u0440");
+        a("Blood Moon", "\u041a\u0440\u0438\u0432\u0430\u0432\u0438\u0439 \u043c\u0456\u0441\u044f\u0446\u044c");
+        a("Ocean", "\u041e\u043a\u0435\u0430\u043d");
+        a("Space", "\u041a\u043e\u0441\u043c\u043e\u0441");
+        a("Aurora", "\u041f\u0456\u0432\u043d\u0456\u0447\u043d\u0435 \u0441\u044f\u0439\u0432\u043e");
+        a("Dreamy", "\u041c\u0440\u0456\u0439\u043b\u0438\u0432\u0438\u0439");
+        a("Vivid", "\u041d\u0430\u0441\u0438\u0447\u0435\u043d\u0438\u0439");
+        a("Cinematic", "\u041a\u0456\u043d\u043e");
         a("Cubes Color", "\u041a\u043e\u043b\u0456\u0440 \u043a\u0443\u0431\u0456\u0432");
         a("Cubes Mix", "\u041c\u0456\u043a\u0441 \u043a\u0443\u0431\u0456\u0432");
         a("Orbit Color", "\u041a\u043e\u043b\u0456\u0440 \u043a\u043b\u0438\u043d\u043a\u0456\u0432");
@@ -331,6 +342,41 @@ public final class Lang {
         a("D-Star", "\u0414-\u0417\u0456\u0440\u043a\u0430");
         a("D-Ring", "\u0414-\u041a\u0456\u043b\u044c\u0446\u0435");
         a("D-Spiral", "\u0414-\u0421\u043f\u0456\u0440\u0430\u043b\u044c");
+        b("Visuals", "\u0412\u0456\u0437\u0443\u0430\u043b");
+        b("Auto", "\u0410\u0432\u0442\u043e");
+        b("World Particles", "\u0427\u0430\u0441\u0442\u0438\u043d\u043a\u0438 \u0441\u0432\u0456\u0442\u0443");
+        b("World Particles Amount", "\u041a\u0456\u043b\u044c\u043a\u0456\u0441\u0442\u044c \u0447\u0430\u0441\u0442\u0438\u043d\u043e\u043a");
+        b("World Particles Color", "\u041a\u043e\u043b\u0456\u0440 \u0447\u0430\u0441\u0442\u0438\u043d\u043e\u043a");
+        b("World Particles Mix", "\u041c\u0456\u043a\u0441 \u0447\u0430\u0441\u0442\u0438\u043d\u043e\u043a");
+        b("Fireflies", "\u0421\u0432\u0456\u0442\u043b\u044f\u0447\u043a\u0438");
+        b("Snow", "\u0421\u043d\u0456\u0433");
+        b("Sakura", "\u0421\u0430\u043a\u0443\u0440\u0430");
+        b("Embers", "\u0416\u0430\u0440");
+        b("Stars", "\u0417\u0456\u0440\u043a\u0438");
+        b("Magic", "\u041c\u0430\u0433\u0456\u044f");
+        b("Neon Dust", "\u041d\u0435\u043e\u043d\u043e\u0432\u0438\u0439 \u043f\u0438\u043b");
+        b("Pulse Wave", "\u0425\u0432\u0438\u043b\u044f \u043f\u0443\u043b\u044c\u0441\u0443");
+        b("Pulse Color", "\u041a\u043e\u043b\u0456\u0440 \u043f\u0443\u043b\u044c\u0441\u0443");
+        b("Pulse Mix", "\u041c\u0456\u043a\u0441 \u043f\u0443\u043b\u044c\u0441\u0443");
+        b("Slow", "\u041f\u043e\u0432\u0456\u043b\u044c\u043d\u043e");
+        b("Fast", "\u0428\u0432\u0438\u0434\u043a\u043e");
+        b("Double", "\u041f\u043e\u0434\u0432\u0456\u0439\u043d\u0430");
+        b("Fly Visuals", "\u0412\u0456\u0437\u0443\u0430\u043b \u043f\u043e\u043b\u044c\u043e\u0442\u0443");
+        b("Fly Color", "\u041a\u043e\u043b\u0456\u0440 \u043f\u043e\u043b\u044c\u043e\u0442\u0443");
+        b("Fly Mix", "\u041c\u0456\u043a\u0441 \u043f\u043e\u043b\u044c\u043e\u0442\u0443");
+        b("Ribbon", "\u0421\u0442\u0440\u0456\u0447\u043a\u0430");
+        b("Spiral", "\u0421\u043f\u0456\u0440\u0430\u043b\u044c");
+        b("Wind", "\u0412\u0456\u0442\u0435\u0440");
+        b("Synthwave", "\u0421\u0438\u043d\u0442\u0432\u0435\u0439\u0432");
+        b("Rainbow", "\u0412\u0435\u0441\u0435\u043b\u043a\u0430");
+        b("Pulse", "\u041f\u0443\u043b\u044c\u0441");
+        b("Inferno", "\u041f\u0435\u043a\u043b\u043e");
+        b("Neon", "\u041d\u0435\u043e\u043d");
+        b("Moody", "\u041f\u043e\u0445\u043c\u0443\u0440\u0438\u0439");
+        b("Bloom", "\u0411\u043b\u0443\u043c");
+        b("Few", "\u041c\u0430\u043b\u043e");
+        b("Many", "\u0411\u0430\u0433\u0430\u0442\u043e");
+        b("Normal", "\u0417\u0432\u0438\u0447\u0430\u0439\u043d\u043e");
     }
 
     public static boolean uk() { return Modules.LANG.index == 1; }
