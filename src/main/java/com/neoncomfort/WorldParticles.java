@@ -142,7 +142,7 @@ public final class WorldParticles {
     private static void flyFx(MinecraftClient mc, ClientPlayerEntity p) {
         int mode = Modules.FLY_FX.index;                         // 1 Ribbon, 2 Spiral, 3 Wind
         if (mode == 0) return;
-        boolean flying = p.isFallFlying() || p.getAbilities().flying;
+        boolean flying = p.isGliding() || p.getAbilities().flying;
         if (!flying) return;
         Vec3d v = p.getVelocity();
         double px = p.getX(), py = p.getY(), pz = p.getZ();
