@@ -32,7 +32,7 @@ import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import org.lwjgl.glfw.GLFW;
 
 public class NeonComfort implements ClientModInitializer {
-    public static final String VERSION = "2.8.1";
+    public static final String VERSION = "2.18.0";
     private static final String CATEGORY = "category.neoncomfort";
 
     private static KeyBinding menuKey;
@@ -54,12 +54,17 @@ public class NeonComfort implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         Config.load();
+        Seasons.init();
         menuKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.neoncomfort.menu", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_RIGHT_SHIFT, CATEGORY));
         zoomKey = KeyBindingHelper.registerKeyBinding(new KeyBinding(
                 "key.neoncomfort.zoom", InputUtil.Type.KEYSYM, GLFW.GLFW_KEY_C, CATEGORY));
 
         HudRenderCallback.EVENT.register((ctx, tickCounter) -> Hud.render(ctx));
+        WorldRenderEvents.AFTER_ENTITIES.register(ctx -> {
+            SkyDome.render(ctx);
+            WorldVisuals.render(ctx);
+        });
 
         // Звук при ударе по живому существу (только на твоём клиенте)
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
@@ -107,10 +112,16 @@ public class NeonComfort implements ClientModInitializer {
         handleWeather(mc);
         handleTrail(mc, p);
         handleNoHurtCam(p);
+        Perf.tickStart();
+        Nav.tick(mc, p);
+        handleParticleFilter(mc);
+        handleSoundMixer(mc);
+        Perf.tick(mc);
         Pets.tick(mc, p);
+        WorldVisuals.tick(mc);
+        Seasons.tick(mc);
+        RainFx.tick(mc);
         handleTime(mc);
-        WorldFx.tick(mc);
-        WorldParticles.tick(mc);
         handleTargetMarker(mc);
         handleKill();
         handleLightning(mc);
@@ -118,6 +129,7 @@ public class NeonComfort implements ClientModInitializer {
         handleJump(mc, p);
         handleFootsteps(mc, p);
         handleSlash(mc, p);
+        Perf.tickEnd();
     }
 
     // ---- подписи клавиш для списка биндов ----
@@ -187,8 +199,9 @@ public class NeonComfort implements ClientModInitializer {
             float u = 0.5f + 0.5f * (float) Math.sin(e.age * 0.35);
             int rgb = FxColor.pick(Modules.PROJ_COLOR, Modules.PROJ_COLOR2, u, e.age * 60L);
             double cy = e.getHeight() * 0.5;
-            for (int k = 0; k < 3; k++) {
-                double f = k / 3.0;
+            int kk = Perf.reduced() ? 1 : 3;
+            for (int k = 0; k < kk; k++) {
+                double f = k / (double) kk;
                 double x = e.prevX + (e.getX() - e.prevX) * f;
                 double y = e.prevY + (e.getY() - e.prevY) * f + cy;
                 double z = e.prevZ + (e.getZ() - e.prevZ) * f;
@@ -279,6 +292,56 @@ public class NeonComfort implements ClientModInitializer {
         int rgb = FxColor.pick(Modules.FOOT_COLOR, Modules.FOOT_COLOR2, u, footN * 90L);
         mc.world.addParticle(new DustParticleEffect(rgb, mode == 1 ? 0.7f : 1.0f), x, y, z, 0, 0, 0);
         if (mode == 2) mc.world.addParticle(ParticleTypes.END_ROD, x, y + 0.02, z, 0, 0, 0);
+    }
+
+    // ---- Particle Filter: меняет ванильную настройку частиц (Менше / Минимум) и возвращает прежнюю при OFF ----
+    private int lastPm = -1;
+    private net.minecraft.client.option.ParticlesMode origPm = null;
+
+    private void handleParticleFilter(MinecraftClient mc) {
+        int i = Modules.PARTICLE_MODE.index;
+        if (i == lastPm) return;
+        lastPm = i;
+        if (i == 0) {
+            if (origPm != null) mc.options.getParticles().setValue(origPm);
+            origPm = null;
+            return;
+        }
+        if (origPm == null) origPm = mc.options.getParticles().getValue();
+        mc.options.getParticles().setValue(i == 1 ? net.minecraft.client.option.ParticlesMode.DECREASED
+                : net.minecraft.client.option.ParticlesMode.MINIMAL);
+    }
+
+    // ---- Sound Mixer: громкость групп звуков (Default = не трогать, прежнее значение возвращается) ----
+    private final int[] mixLast = { -1, -1, -1, -1, -1 };
+    private final java.util.Map<net.minecraft.sound.SoundCategory, Double> mixOrig =
+            new java.util.EnumMap<>(net.minecraft.sound.SoundCategory.class);
+    private static final double[] MIX_VALS = { -1.0, 0.0, 0.25, 0.5, 0.75, 1.0 };
+
+    private void handleSoundMixer(MinecraftClient mc) {
+        Modules.Module[] ms = { Modules.MIX_PLAYERS, Modules.MIX_BLOCKS, Modules.MIX_MOBS, Modules.MIX_AMBIENT, Modules.MIX_MUSIC };
+        net.minecraft.sound.SoundCategory[][] cats = {
+            { net.minecraft.sound.SoundCategory.PLAYERS },
+            { net.minecraft.sound.SoundCategory.BLOCKS },
+            { net.minecraft.sound.SoundCategory.HOSTILE, net.minecraft.sound.SoundCategory.NEUTRAL },
+            { net.minecraft.sound.SoundCategory.AMBIENT, net.minecraft.sound.SoundCategory.WEATHER },
+            { net.minecraft.sound.SoundCategory.MUSIC, net.minecraft.sound.SoundCategory.RECORDS }
+        };
+        for (int i = 0; i < ms.length; i++) {
+            int idx = ms[i].index;
+            if (idx == mixLast[i]) continue;
+            mixLast[i] = idx;
+            for (net.minecraft.sound.SoundCategory c : cats[i]) {
+                net.minecraft.client.option.SimpleOption<Double> opt = mc.options.getSoundVolumeOption(c);
+                if (idx == 0) {
+                    Double o = mixOrig.remove(c);
+                    if (o != null) opt.setValue(o);
+                } else {
+                    mixOrig.putIfAbsent(c, opt.getValue());
+                    opt.setValue(MIX_VALS[idx]);
+                }
+            }
+        }
     }
 
     // ---- Time Changer: время суток только на вашем клиенте ----
@@ -381,6 +444,7 @@ public class NeonComfort implements ClientModInitializer {
         }
         if (t.isDead() || t.getHealth() <= 0f) {
             killTarget = null;
+            Nav.kills++;
             if (Modules.KILL_EFFECT.index > 0) spawnKill(kx, ky, kz);
             if (Modules.KILL_LIGHTNING.index > 0) bolts.add(new double[] { kx, ky, kz, 0 });
             return;

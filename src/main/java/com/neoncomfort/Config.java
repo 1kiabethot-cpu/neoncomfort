@@ -41,6 +41,9 @@ public final class Config {
             } catch (NumberFormatException ignored) { }
         }
         Lite.deserialize(p.getProperty("lite_backup"));
+        Presets.deserialize(p.getProperty("preset_backup"));
+        Nav.loadTeam(p.getProperty("nav_team"));
+        Nav.loadWps(p.getProperty("nav_wps"));
     }
 
     public static void save() {
@@ -50,6 +53,10 @@ public final class Config {
         }
         String lb = Lite.serialize();
         if (!lb.isEmpty()) p.setProperty("lite_backup", lb);
+        String pb = Presets.serialize();
+        if (!pb.isEmpty()) p.setProperty("preset_backup", pb);
+        p.setProperty("nav_team", Nav.saveTeam());
+        p.setProperty("nav_wps", Nav.saveWps());
         try (OutputStream out = Files.newOutputStream(file())) {
             p.store(out, "NeonComfort settings");
         } catch (IOException ignored) { }

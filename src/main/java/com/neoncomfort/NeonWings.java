@@ -62,9 +62,11 @@ final class NeonWings {
         }
     }
 
+    private static final Ctx SHARED = new Ctx();
+
     /** style: 1 Feather, 2 Dragon, 3 Bat, 4 Butterfly, 5 Crystal. Матрица m уже в системе тела. */
     static void render(MatrixStack m, VertexConsumerProvider vcp, int style, float age, float flap, float flapSpeed, float size) {
-        Ctx c = new Ctx();
+        Ctx c = SHARED;
         c.mat = m.peek().getPositionMatrix();
         c.vc = vcp.getBuffer(RenderLayer.getEyes(Cosmetics.TEX));
         float sweep = 0.30f + flap;

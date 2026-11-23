@@ -38,6 +38,12 @@ public final class Modules {
 
         public void toggle() { click(); }
 
+        /** правый клик: предыдущее значение (у переключателя то же, что и обычный клик) */
+        public void back() {
+            if (isOption()) index = (index - 1 + values.length) % values.length;
+            else enabled = !enabled;
+        }
+
         public String label() {
             return isOption() ? values[index] : (enabled ? "ON" : "OFF");
         }
@@ -84,7 +90,7 @@ public final class Modules {
     public static final Module HIT_AMOUNT = Module.option("Hit Amount", false,
             "Medium", "Less", "More");
     public static final Module TWILIGHT_STYLE = Module.option("Twilight Style", false,
-            "Sunset", "Pink", "Aurora", "Violet", "Gold", "Toxic");
+            "Sunset", "Pink", "Aurora", "Violet", "Gold", "Toxic", "Polar", "Nebula");
     public static final Module HIT_EFFECT = Module.option("Hit Effect", false, effectNames());
     public static final Module TRAIL_EFFECT = Module.option("Trail Effect", false, effectNames());
     public static final Module HIT_COLOR2 = Module.option("Hit Color 2", true, color2Values());
@@ -111,7 +117,8 @@ public final class Modules {
 
     // --- косметика ---
     public static final Module WINGS = Module.option("Wings", true,
-            "OFF", "Void", "Gold", "Ember", "Frost", "Rose", "Feather", "Dragon", "Bat", "Butterfly", "Crystal");
+            "OFF", "Void", "Gold", "Ember", "Frost", "Rose", "Feather", "Dragon", "Bat", "Butterfly", "Crystal",
+            "Raven", "Jade", "Inferno", "Seraph", "Demon", "Spirit");
     public static final Module HAT = Module.option("Hat", true,
             "OFF", "Crown", "Halo", "Top Hat", "Cat Ears", "Horns", "Wizard", "China", "Antlers", "Bunny", "Headphones", "Pumpkin");
     public static final Module CUBES = Module.option("Cubes", true,
@@ -153,7 +160,10 @@ public final class Modules {
     public static final Module TAIL = Module.option("Tail", true, "OFF", "Short", "Long");
 
     // --- версия 2.1: пресеты, орбитальные клинки, молния при убийстве, компас ---
-    public static final Module PRESET = Module.option("Preset", false, "Custom", "Destra", "Neon", "Minimal", "PvP");
+    public static final Module PRESET = Module.option("Preset", false, "Custom", "Destra", "Neon", "Minimal", "PvP", "Mine", "Blood Moon");
+    /** Кнопки-действия: выбор пресета ничего не меняет, пока не нажата Apply Preset; Undo Preset возвращает прошлые настройки */
+    public static final Module PRESET_APPLY = Module.option("Apply Preset", false, "Tap");
+    public static final Module PRESET_UNDO = Module.option("Undo Preset", false, "Tap");
     public static final Module ORBIT = Module.option("Orbit Blades", true, "OFF", "Few", "Normal", "Many");
     public static final Module KILL_LIGHTNING = Module.option("Kill Lightning", true, "OFF", "Soft", "Strong");
     public static final Module LIGHTNING_COLOR = Module.option("Lightning Color", false, menuPlus());
@@ -182,6 +192,91 @@ public final class Modules {
         PET_SIZE.index = 1;
     }
 
+    // --- версия 2.13: небо в мире и безопасный режим без мерцания ---
+    public static final Module SKY_MODE = Module.option("Sky Mode", true, "OFF", "Cosmos", "Blood Moon", "Aurora", "Synthwave", "Nebula", "Sunset");
+    public static final Module SKY_POWER = Module.option("Sky Power", false, "Soft", "Normal", "Strong");
+    /** Comfort Mode: убирает мигание и резкие пульсации (звёзды, рамка хотбара, предупреждения) */
+    public static final Module COMFORT = new Module("Comfort Mode", false);
+    static {
+        SKY_POWER.index = 1;
+        COMFORT.enabled = true;
+    }
+
+    // --- версия 2.14: 3D-визуалы мира (рисуются в мире, не поверх экрана; см. WorldVisuals) ---
+    public static final Module SKY_STARS = Module.option("Sky Stars", true, "OFF", "Few", "Normal", "Many");
+    public static final Module SKY_STAR_COLOR = Module.option("Sky Stars Color", false, autoValues());
+    public static final Module SHOOTING_STARS = Module.option("Shooting Stars", true, "OFF", "Rare", "Often");
+    public static final Module SKY_BODY = Module.option("Sky Body", true, "OFF", "Giant Moon", "Blood Moon", "Neon Moon", "Ringed Planet", "Twin Moons", "Eclipse", "Supermoon");
+    public static final Module RAINBOW = Module.option("Rainbow", true, "OFF", "Soft", "Vivid");
+    public static final Module SUN_GLOW = Module.option("Sun Glow", true, "OFF", "Soft", "Strong");
+    public static final Module BLOCK_GLOW = Module.option("Block Glow", true, "OFF", "Outline", "Fill", "Both");
+    public static final Module BLOCK_COLOR = Module.option("Block Color", false, menuPlus());
+    public static final Module BLOCK_COLOR2 = Module.option("Block Mix", true, color2Values());
+    public static final Module AIR_FX = Module.option("Air FX", true, "OFF", "Fireflies", "Petals", "Snow", "Embers", "Ash", "Spores");
+    // --- версия 2.15: пори року и Light Shader (без нагрузки на FPS) ---
+    public static final Module SEASON = Module.option("Season", true, "OFF", "Spring", "Summer", "Autumn", "Winter", "Cycle");
+    public static final Module SEASON_PARTS = new Module("Season Particles", true);
+    public static final Module LIGHT_SHADER = Module.option("Light Shader", true,
+            "OFF", "Soft", "Vivid", "Cinematic", "Neon", "Moody", "Golden", "Frost", "Blood");
+    // --- версия 2.17: звуки меню и цветной дождь ---
+    public static final Module MENU_SOUND = Module.option("Menu Sound", false, "OFF", "Click", "Soft", "Pop", "Chime", "Crystal");
+    static {
+        MENU_SOUND.index = 1;
+    }
+    public static final Module RAIN_FX = Module.option("Rain FX", true, "OFF", "Blood Rain", "Ember Rain", "Neon Rain", "Toxic Rain", "Ash Fall");
+    public static final Module RAIN_AMOUNT = Module.option("Rain Amount", false, "Medium", "Less", "More");
+    public static final Module RAIN_WHEN = Module.option("Rain When", false, "Always", "Only in Rain");
+    public static final Module RAIN_COLOR = Module.option("Rain Color", false, autoValues());
+    public static final Module RAIN_TINT = new Module("Rain Tint", true);
+    // настоящая окраска мира (через миксины): небо / облака / туман и сам ванильный дождь
+    public static final Module SKY_TINT = Module.option("Sky Tint", true, "OFF", "Blood", "Sunset", "Violet", "Toxic", "Ice", "Gold", "Ocean", "Season");
+    public static final Module SKY_TINT_POWER = Module.option("Sky Tint Power", false, "Medium", "Light", "Strong");
+    public static final Module RAIN_REAL = Module.option("Rain Real Color", true, color2Values());
+    public static final Module AIR_AMOUNT = Module.option("Air FX Amount", false, "Medium", "Less", "More");
+    /** Look: готовый набор визуалов. Выбор ничего не меняет, пока не нажата Apply Look (отменяется кнопкой Undo Preset) */
+    public static final Module LOOK = Module.option("Visual Look", false, "Custom", "Cinematic Night", "Fantasy", "Golden Hour", "Winter Magic", "Blood Night", "Blood Storm");
+    public static final Module LOOK_APPLY = Module.option("Apply Look", false, "Tap");
+
+    // --- версия 2.12: вид руки, чистка накладок, микшер звука, типы точек ---
+    public static final Module VIEW_MODEL = Module.option("View Model", true, "OFF", "Low Left", "Low Right", "Far", "Small", "Big");
+    public static final Module OVERLAY_CLEAN = new Module("Overlay Cleaner", false);
+    public static final Module WP_TYPE = Module.option("Waypoint Type", false, "Point", "Event", "Base", "Loot", "Danger");
+    public static final Module MIX_PLAYERS = Module.option("Mix Players", false, "Default", "Mute", "25%", "50%", "75%", "100%");
+    public static final Module MIX_BLOCKS = Module.option("Mix Blocks", false, "Default", "Mute", "25%", "50%", "75%", "100%");
+    public static final Module MIX_MOBS = Module.option("Mix Mobs", false, "Default", "Mute", "25%", "50%", "75%", "100%");
+    public static final Module MIX_AMBIENT = Module.option("Mix Ambient", false, "Default", "Mute", "25%", "50%", "75%", "100%");
+    public static final Module MIX_MUSIC = Module.option("Mix Music", false, "Default", "Mute", "25%", "50%", "75%", "100%");
+
+    // --- версия 2.11: информационные функции HUD ---
+    public static final Module STREAMER = new Module("Streamer Mode", false);
+    public static final Module ARMOR_WARN = new Module("Armor Warning", false);
+    public static final Module ITEM_COUNTER = new Module("Item Counter", false);
+    public static final Module INFO_PANEL = new Module("Info Panel", false);
+    public static final Module LOW_HP = new Module("Low HP Pulse", false);
+    public static final Module BIOME_TITLE = new Module("Biome Title", false);
+
+    // --- версия 2.10: команда, точки, фильтр частиц ---
+    public static final Module TEAM_TRACKER = new Module("Team Tracker", false);
+    public static final Module TEAM_ADD = Module.option("Add Team Mate", false, "Tap");
+    public static final Module TEAM_CLEAR = Module.option("Clear Team", false, "Tap");
+    public static final Module WAYPOINTS = new Module("Waypoints", false);
+    public static final Module WP_ADD = Module.option("Add Waypoint", false, "Tap");
+    public static final Module WP_CLEAR = Module.option("Clear Waypoints", false, "Tap");
+    public static final Module WP_SHARE = Module.option("Share Coords", false, "Tap");
+    public static final Module PARTICLE_MODE = Module.option("Particle Filter", false, "OFF", "Reduced", "Minimal");
+
+    /** Показывает в ватермарке, сколько времени забирает сам мод (HUD за кадр и обработчики за тик) */
+    public static final Module MOD_TIME = new Module("Mod Time", false);
+
+    /** Авто-оптимизация: при низком FPS тяжёлые эффекты упрощаются сами */
+    public static final Module AUTO_PERF = new Module("Auto Perf", false);
+    static {
+        AUTO_PERF.enabled = true;
+    }
+
+    // --- версия 2.9: предметы на спине ---
+    public static final Module BACK = Module.option("Back Item", true, "OFF", "Backpack", "Quiver", "Katana");
+
     // --- версия 2.7: эффекты, свой туман, время, метка цели, боковое меню, плащи ---
     public static final Module POTIONS = new Module("Potions HUD", false);
     public static final Module FOG = Module.option("Custom Fog", true, "OFF", "Light", "Medium", "Thick");
@@ -205,29 +300,6 @@ public final class Modules {
         HOTBAR_FRAME.index = 1;
     }
 
-    // --- версия 2.9: World FX (кровавая луна, море, космос, сияние) и лёгкий Soft Shader ---
-    public static final Module WORLD_FX = Module.option("World FX", true,
-            "OFF", "Blood Moon", "Ocean", "Space", "Aurora", "Dreamy",
-            "Synthwave", "Rainbow", "Pulse", "Inferno");
-    public static final Module WORLD_FX_POWER = Module.option("World FX Power", false,
-            "Medium", "Soft", "Strong");
-    public static final Module SOFT_SHADER = Module.option("Soft Shader", true,
-            "OFF", "Soft", "Vivid", "Cinematic", "Neon", "Moody", "Bloom");
-
-    // --- версия 3.0: Visuals (частицы мира, волны пульса, визуал полёта) ---
-    public static final Module WORLD_PARTS = Module.option("World Particles", true,
-            "OFF", "Fireflies", "Snow", "Sakura", "Embers", "Stars", "Magic", "Neon Dust");
-    public static final Module WORLD_PARTS_AMOUNT = Module.option("World Particles Amount", false,
-            "Normal", "Few", "Many");
-    public static final Module WORLD_PARTS_COLOR = Module.option("World Particles Color", false, autoPlus());
-    public static final Module WORLD_PARTS_COLOR2 = Module.option("World Particles Mix", true, color2Values());
-    public static final Module PULSE_WAVE = Module.option("Pulse Wave", true, "OFF", "Slow", "Fast", "Double");
-    public static final Module PULSE_COLOR = Module.option("Pulse Color", false, menuPlus());
-    public static final Module PULSE_COLOR2 = Module.option("Pulse Mix", true, color2Values());
-    public static final Module FLY_FX = Module.option("Fly Visuals", true, "OFF", "Ribbon", "Spiral", "Wind");
-    public static final Module FLY_COLOR = Module.option("Fly Color", false, menuPlus());
-    public static final Module FLY_COLOR2 = Module.option("Fly Mix", true, color2Values());
-
     // --- версия 2.2: следы снарядов, круги прыжка, светящиеся шаги, свечение хотбара, неоновые звёзды ---
     // у каждого эффекта: основной цвет (Color) и второй цвет для смешивания (Mix, OFF = без смешивания)
     public static final Module PROJ_TRAIL = Module.option("Projectile Trail", true, "OFF", "Soft", "Bright", "Spark");
@@ -248,7 +320,7 @@ public final class Modules {
 
     // ===== страницы меню (боковая панель): Main = всё, что не про визуалы; остальные по темам =====
     public static final List<Module> PAGE1 = List.of(   // Main / Основное
-            MENU_THEME, MENU_COLOR, MENU_LAYOUT, MENU_ANIM, HUD_SIZE, PRESET, FPS_BOOST, FULLBRIGHT,
+            MENU_THEME, MENU_COLOR, MENU_LAYOUT, MENU_ANIM, MENU_SOUND, HUD_SIZE, PRESET, PRESET_APPLY, PRESET_UNDO, FPS_BOOST, AUTO_PERF, FULLBRIGHT,
             AUTOSPRINT, ZOOM, NO_HURT_CAM, LOW_FIRE, HIT_SOUND, HIT_VOLUME);
     public static final List<Module> PAGE2 = List.of(   // HUD
             WATERMARK, COORDS, ARMOR, PING_TIME, TARGET, NEARBY_ARMOR, BINDS, POTIONS, COMPASS,
@@ -256,7 +328,8 @@ public final class Modules {
             HOTBAR_GLOW, HOTBAR_COLOR, HOTBAR_COLOR2, HOTBAR_FRAME, HIT_MARKER);
     public static final List<Module> PAGE3 = List.of(   // World / Мир
             WEATHER, TIME, FOG, FOG_COLOR, FOG_COLOR2, TWILIGHT, TWILIGHT_STYLE,
-            NEON_STARS, STAR_COLOR, STAR_COLOR2, SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR);
+            NEON_STARS, STAR_COLOR, STAR_COLOR2, SCREEN_FX, SCREEN_FX_AMOUNT, SCREEN_FX_COLOR,
+            SEASON, SEASON_PARTS, LIGHT_SHADER, SKY_MODE, SKY_BODY);
     public static final List<Module> PAGE4 = List.of(   // Combat / Бой
             HIT_EFFECT, HIT_COLOR, HIT_COLOR2, HIT_AMOUNT, HIT_GLOW, HIT_EFFECT_COLOR, HIT_RING, HIT_RING_SIZE,
             SLASH, SLASH_COLOR, SLASH_COLOR2, KILL_EFFECT, KILL_COLOR, KILL_LIGHTNING, LIGHTNING_COLOR,
@@ -271,13 +344,20 @@ public final class Modules {
             ORBIT, ORBIT_COLOR, ORBIT_COLOR2);
     public static final List<Module> PAGE7 = List.of(   // Cosmetics / Косметика
             WINGS, WING_SIZE, WING_FLAP, WING_COLOR, WING_COLOR2, CAPE, CAPE_COLOR, CAPE_COLOR2,
-            TAIL, HAT, PET, PET_SIZE);
-    public static final List<Module> PAGE8 = List.of(   // Visuals / Визуал
-            WORLD_FX, WORLD_FX_POWER, SOFT_SHADER,
-            WORLD_PARTS, WORLD_PARTS_AMOUNT, WORLD_PARTS_COLOR, WORLD_PARTS_COLOR2,
-            PULSE_WAVE, PULSE_COLOR, PULSE_COLOR2,
-            FLY_FX, FLY_COLOR, FLY_COLOR2);
-    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6, PAGE7, PAGE8);
+            TAIL, HAT, BACK, PET, PET_SIZE, MOD_TIME);
+    public static final List<Module> PAGE8 = List.of(
+            TEAM_TRACKER, TEAM_ADD, TEAM_CLEAR, WAYPOINTS, WP_TYPE, WP_ADD, WP_CLEAR, WP_SHARE, PARTICLE_MODE);
+    public static final List<Module> PAGE9 = List.of(STREAMER, ARMOR_WARN, ITEM_COUNTER, INFO_PANEL, LOW_HP, BIOME_TITLE, VIEW_MODEL, OVERLAY_CLEAN);
+    public static final List<Module> PAGE10 = List.of(SKY_MODE, SKY_POWER, COMFORT, MIX_PLAYERS, MIX_BLOCKS, MIX_MOBS, MIX_AMBIENT, MIX_MUSIC);
+    public static final List<Module> PAGE11 = List.of(   // Visuals / Візуали
+            SKY_BODY, SKY_STARS, SKY_STAR_COLOR, SHOOTING_STARS, SUN_GLOW, RAINBOW,
+            BLOCK_GLOW, BLOCK_COLOR, BLOCK_COLOR2, AIR_FX, AIR_AMOUNT, SEASON, SEASON_PARTS, LIGHT_SHADER, RAIN_FX, RAIN_AMOUNT, RAIN_WHEN, RAIN_COLOR, RAIN_TINT,
+            SKY_TINT, SKY_TINT_POWER, RAIN_REAL, LOOK, LOOK_APPLY);
+    /** вкладка Quick в меню: всё для быстрого переключения визуалов (не страница: Lite её не трогает) */
+    public static final List<Module> QUICK = List.of(
+            SEASON, SEASON_PARTS, LIGHT_SHADER, RAIN_FX, RAIN_WHEN, SKY_TINT, SKY_MODE, SKY_BODY, SKY_STARS, AIR_FX,
+            TWILIGHT, FOG, WEATHER, TIME, FULLBRIGHT, FPS_BOOST);
+    public static final List<List<Module>> PAGES = List.of(PAGE1, PAGE2, PAGE3, PAGE4, PAGE5, PAGE6, PAGE7, PAGE8, PAGE9, PAGE10, PAGE11);
 
     /** Упрощённое меню: только самое нужное на одной странице */
     public static final Module MENU_SIMPLE = new Module("Simple Menu", false);
@@ -289,13 +369,14 @@ public final class Modules {
             CROSSHAIR, CROSSHAIR_COLOR, HIT_SOUND,
             HIT_COLOR, HIT_EFFECT, TRAIL,
             TRAIL_EFFECT, TWILIGHT, SCREEN_FX,
-            FPS_BOOST, FULLBRIGHT, ZOOM);
+            FPS_BOOST, FULLBRIGHT, ZOOM,
+            SEASON, LIGHT_SHADER, SKY_MODE);
 
     /** все модули (для сохранения конфига) */
     public static final List<Module> ALL;
     static {
         List<Module> all = new java.util.ArrayList<>();
-        for (List<Module> pg : PAGES) all.addAll(pg);
+        for (List<Module> pg : PAGES) for (Module m : pg) if (!all.contains(m)) all.add(m);   // один пункт может стоять на нескольких страницах
         all.add(MENU_SIMPLE);
         all.add(LANG);
         all.add(LITE);
@@ -339,14 +420,6 @@ public final class Modules {
         int n = Theme.COLOR_NAMES.length;
         String[] a = new String[n + 2];
         a[0] = "Aura";
-        System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
-        a[n + 1] = "Rainbow";
-        return a;
-    }
-    private static String[] autoPlus() {
-        int n = Theme.COLOR_NAMES.length;
-        String[] a = new String[n + 2];
-        a[0] = "Auto";
         System.arraycopy(Theme.COLOR_NAMES, 0, a, 1, n);
         a[n + 1] = "Rainbow";
         return a;

@@ -44,7 +44,7 @@ public class CosmeticsFx implements ClientModInitializer {
         float r = ((rgb >> 16) & 255) / 255f;
         float g = ((rgb >> 8) & 255) / 255f;
         float b = (rgb & 255) / 255f;
-        int n = mode == 1 ? 1 : 3;
+        int n = mode == 1 ? 1 : (Perf.reduced() ? 1 : 3);
         for (int i = 0; i < n; i++) {
             double a = Math.random() * Math.PI * 2.0;
             double rad = 0.5 + Math.random() * 0.7;

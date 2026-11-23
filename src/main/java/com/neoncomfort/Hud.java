@@ -26,6 +26,12 @@ public final class Hud {
             EquipmentSlot.HEAD, EquipmentSlot.CHEST, EquipmentSlot.LEGS, EquipmentSlot.FEET };
 
     public static void render(DrawContext ctx) {
+        long t0 = System.nanoTime();
+        renderInner(ctx);
+        Perf.addHud(System.nanoTime() - t0);
+    }
+
+    private static void renderInner(DrawContext ctx) {
         MinecraftClient mc = MinecraftClient.getInstance();
         ClientPlayerEntity player = mc.player;
         if (player == null || mc.options.hudHidden) return;
@@ -33,7 +39,9 @@ public final class Hud {
 
         if (Modules.TWILIGHT.index > 0) twilight(ctx, mc, Modules.TWILIGHT.index, Modules.TWILIGHT_STYLE.index);
         if (Modules.FOG.index > 0) fog(ctx, mc);
-        if (Modules.WORLD_FX.index > 0 || Modules.SOFT_SHADER.index > 0) WorldFx.render(ctx, mc);
+        Seasons.render(ctx, mc);
+        RainFx.render(ctx, mc);
+        LightShader.render(ctx, mc);
         stars(ctx, mc, player);
         ScreenFx.render(ctx, mc);
         if (mc.currentScreen == null) hitMarker(ctx, mc);
@@ -42,13 +50,20 @@ public final class Hud {
         if (Modules.WATERMARK.enabled) watermark(ctx, mc, tr, player);
         float nextY = 6 + 16 * S() + 4;
         if (Modules.BINDS.enabled) nextY = binds(ctx, mc, tr);
-        if (Modules.POTIONS.enabled) potions(ctx, mc, tr, player, nextY);
+        if (Modules.POTIONS.enabled) nextY = potions(ctx, mc, tr, player, nextY);
+        boolean st = Modules.STREAMER.enabled;               // Streamer Mode прячет координаты, тим, точки и броню соседей
+        if (Modules.TEAM_TRACKER.enabled && !st) nextY = team(ctx, mc, tr, player, nextY);
+        if (Modules.WAYPOINTS.enabled && !st) nextY = waypoints(ctx, mc, tr, player, nextY);
+        if (Modules.INFO_PANEL.enabled || Modules.ITEM_COUNTER.enabled) nextY = InfoHud.panel(ctx, mc, tr, player, nextY, st);
         if (Modules.COMPASS.enabled) compass(ctx, mc, tr, player);
-        if (Modules.COORDS.enabled) coords(ctx, mc, tr, player);
+        if (Modules.COORDS.enabled && !st) coords(ctx, mc, tr, player);
         if (Modules.ARMOR.enabled) armor(ctx, mc, tr, player);
         if (Modules.TARGET.enabled) target(ctx, mc, tr);
-        if (Modules.NEARBY_ARMOR.enabled) nearby(ctx, mc, tr, player);
+        if (Modules.NEARBY_ARMOR.enabled && !st) nearby(ctx, mc, tr, player);
         hotbarGlow(ctx, mc, player);
+        if (Modules.ARMOR_WARN.enabled) InfoHud.armorWarn(ctx, mc, tr, player);
+        if (Modules.LOW_HP.enabled) InfoHud.lowHp(ctx, mc, player);
+        if (Modules.BIOME_TITLE.enabled && !st) InfoHud.biome(ctx, mc, tr, player);
     }
 
     private static void dot(DrawContext ctx, int x, int y, int c) {
@@ -213,6 +228,8 @@ public final class Hud {
         int a = level == 1 ? 0x28 : level == 2 ? 0x44 : 0x60;
         if (style == 2) { aurora(ctx, w, h, a); return; }
         if (style == 5) { toxic(ctx, w, h, a); return; }
+        if (style == 6) { polar(ctx, w, h, a); return; }
+        if (style == 7) { nebula(ctx, w, h, a); return; }
         int top, mid, bot;
         switch (style) {
             case 1 -> { top = 0xFFB6C8; mid = 0xFF8FB0; bot = 0x5A2A50; }
@@ -241,6 +258,48 @@ public final class Hud {
     }
 
 
+    /** Polar: полярное сияние: синее небо с плавно текущими голубыми, синими и фиолетовыми лентами. */
+    private static void polar(DrawContext ctx, int w, int h, int a) {
+        double t = System.currentTimeMillis() / 1000.0;
+        int a2 = a * 2 / 3;
+        ctx.fillGradient(0, 0, w, h * 55 / 100, (a << 24) | 0x16206E, (a2 << 24) | 0x5A3CC8);
+        ctx.fillGradient(0, h * 55 / 100, w, h, (a2 << 24) | 0x5A3CC8, 0x00241060);
+        int s = Math.max(3, w / (Perf.reduced() ? 70 : 110));
+        int cols = w / s + 1;
+        int[] cl = { 0x5AE6FF, 0x7A8CFF, 0xB478FF };
+        int pk = Math.min(200, (int) (a * 2.6f));
+        for (int band = 0; band < 3; band++) {
+            int th = (int) (h * (0.13 - band * 0.015));
+            for (int c = 0; c < cols; c++) {
+                double x = c * s / (double) w;
+                double yc = h * (0.15 + 0.12 * band) + Math.sin(x * 4.2 + t * 0.35 + band * 1.9) * h * 0.06
+                        + Math.sin(x * 9.0 - t * 0.22 + band) * h * 0.02;
+                int y0 = (int) yc;
+                ctx.fillGradient(c * s, y0 - th, (c + 1) * s, y0, cl[band], (pk << 24) | cl[band]);
+                ctx.fillGradient(c * s, y0, (c + 1) * s, y0 + (int) (th * 0.7), (pk << 24) | cl[band], cl[band]);
+            }
+        }
+    }
+
+    /** Nebula: мягкие розово-фиолетовые облака на тёмном космическом фоне. */
+    private static void nebula(DrawContext ctx, int w, int h, int a) {
+        double t = System.currentTimeMillis() / 1000.0;
+        ctx.fillGradient(0, 0, w, h, ((a / 2) << 24) | 0x1A0B3C, ((a / 3) << 24) | 0x3A1260);
+        int[] cl = { 0xFF5AC8, 0x8A5AFF, 0x5AB4FF, 0xC85AFF, 0xFF8AD0 };
+        for (int b = 0; b < 5; b++) {
+            double cx = w * (0.12 + 0.19 * b) + Math.sin(t * 0.08 + b * 1.7) * w * 0.05;
+            double cy = h * (0.14 + 0.05 * ((b * 3) % 4)) + Math.cos(t * 0.06 + b) * h * 0.02;
+            int rx = (int) (w * 0.16), ry = Math.max(4, (int) (h * 0.10));
+            int stp = Perf.reduced() ? 4 : 2;
+            for (int r = -ry; r <= ry; r += stp) {
+                double q = r / (double) ry;
+                int hw = (int) (rx * Math.sqrt(Math.max(0.0, 1.0 - q * q)));
+                int al = (int) (a * 1.6f * (1.0 - Math.abs(q)));
+                ctx.fill((int) cx - hw, (int) cy + r, (int) cx + hw, (int) cy + r + stp, (Math.min(al, 150) << 24) | cl[b]);
+            }
+        }
+    }
+
     /** Toxic: зелёное неоновое небо: мягкий отсвет сверху и пиксельные ленты-сияния (как в обзоре Destra). */
     private static void toxic(DrawContext ctx, int w, int h, int a) {
         double t = System.currentTimeMillis() / 1000.0;
@@ -248,7 +307,7 @@ public final class Hud {
         int g1 = Math.min(200, (int) (a * 1.4f));
         ctx.fillGradient(0, 0, w, (int) (h * 0.55f), (g1 << 24) | 0x1FE06A, 0x001FE06A);
         // 2) ленты из крупных «пикселей»: волна по горизонтали, колонки выровнены по сетке
-        int s = Math.max(4, h / 36);
+        int s = Math.max(4, h / (Perf.reduced() ? 20 : 36));
         int cols = w / s + 1;
         for (int ribbon = 0; ribbon < 3; ribbon++) {
             int thick = (int) (h * (0.075 - ribbon * 0.012));
@@ -288,6 +347,7 @@ public final class Hud {
         int mode = Modules.NEON_STARS.index;
         if (mode <= 0) return;
         int count = mode == 1 ? 50 : (mode == 2 ? 110 : STARS);
+        if (Perf.reduced()) count /= 2;
         int sw = mc.getWindow().getScaledWidth(), sh = mc.getWindow().getScaledHeight();
         float ppd = sh / 70f;                          // пикселей на градус
         float yaw = p.getYaw(), pitch = p.getPitch();
@@ -298,7 +358,7 @@ public final class Hud {
             float x = sw / 2f + dx * ppd;
             float y = sh / 2f - (ST_B[i] + pitch) * ppd;
             if (x < 0 || x >= sw || y < 0 || y >= sh) continue;
-            float tw = 0.55f + 0.45f * (float) Math.sin(now / 420.0 + ST_P[i]);
+            float tw = Modules.COMFORT.enabled ? 0.85f : (0.55f + 0.45f * (float) Math.sin(now / 420.0 + ST_P[i]));
             int a = (int) (210 * tw);
             int rgb = FxColor.pick(Modules.STAR_COLOR, Modules.STAR_COLOR2, ST_U[i], i * 180L);
             int c = (a << 24) | rgb;
@@ -331,7 +391,7 @@ public final class Hud {
         int ex = Modules.HOTBAR_FRAME.index * 2;                        // шире рамки: под большие уголки ресурспака
         int x0 = sw / 2 - 92 + slot * 20 - ex, y0 = sh - 23 - ex, w = 24 + 2 * ex, h = 23 + 2 * ex;
         long now = System.currentTimeMillis();
-        float pulse = 0.65f + 0.35f * (float) Math.sin(now / 260.0);
+        float pulse = Modules.COMFORT.enabled ? 0.85f + 0.15f * (float) Math.sin(now / 900.0) : 0.65f + 0.35f * (float) Math.sin(now / 260.0);
         float u = 0.5f + 0.5f * (float) Math.sin(now / 900.0);           // плавное смешивание двух цветов
         int rgb = FxColor.pick(Modules.HOTBAR_COLOR, Modules.HOTBAR_COLOR2, u, now);
         // поднимаем рамку по глубине, чтобы ресурспак (толстая рамка хотбара, уголки) её не закрывал
@@ -369,9 +429,11 @@ public final class Hud {
     }
 
     /** Potions HUD: активные эффекты с цветом, уровнем и временем; когда осталось мало, время краснеет. */
-    private static void potions(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity p, float y) {
-        List<StatusEffectInstance> list = new ArrayList<>(p.getStatusEffects());
-        if (list.isEmpty()) return;
+    private static float potions(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity p, float y) {
+        List<StatusEffectInstance> list = POT_LIST;
+        list.clear();
+        list.addAll(p.getStatusEffects());
+        if (list.isEmpty()) return y;
         list.sort((a, b) -> Integer.compare(b.getDuration(), a.getDuration()));
         int w = 118;
         int h = 15 + list.size() * 12 + 3;
@@ -400,6 +462,32 @@ public final class Hud {
             yy += 12;
         }
         end(ctx);
+        return y + h * S() + 4;
+    }
+
+    // переиспользуемые списки и строки: меньше мусора на кадр
+    private static final List<String[]> BIND_ROWS = new ArrayList<>();
+    private static final String[] R_FULL = { "Fullbright", "ON" };
+    private static final String[] R_SPRINT = { "Auto Sprint", "ON" };
+    private static final String[] R_HURT = { "No Hurt Cam", "ON" };
+    private static final String[] R_FIRE = { "Low Fire", "ON" };
+    private static final List<StatusEffectInstance> POT_LIST = new ArrayList<>();
+    private static final List<PlayerEntity> NEAR_LIST = new ArrayList<>();
+    private static int nearFrame = 0;
+
+    private static final String[] SLOT_LETTERS = { "H", "C", "L", "B" };
+
+    /** цвет плитки по материалу брони: быстро, без отрисовки предмета */
+    private static int matColor(ItemStack st) {
+        String id = net.minecraft.registry.Registries.ITEM.getId(st.getItem()).getPath();
+        if (id.startsWith("netherite")) return 0xFF6A5A6E;
+        if (id.startsWith("diamond")) return 0xFF4AEDD9;
+        if (id.startsWith("golden")) return 0xFFF2D04A;
+        if (id.startsWith("iron")) return 0xFFD8D8D8;
+        if (id.startsWith("chainmail")) return 0xFF9AA0AA;
+        if (id.startsWith("leather")) return 0xFFB06A3A;
+        if (id.startsWith("turtle")) return 0xFF4AA84A;
+        return 0xFFCCCCCC;
     }
 
     private static final String[] DIRS = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
@@ -432,18 +520,92 @@ public final class Hud {
         ctx.fill(w / 2 - 14, 11, w / 2 + 14, 21, Theme.BG);
         ctx.fill(w / 2 - 14, 11, w / 2 + 14, 12, Theme.accent());
         ctx.drawText(tr, deg, w / 2 - tr.getWidth(deg) / 2, 12, Theme.TEXT, true);
+        if (Modules.TEAM_TRACKER.enabled && mc.world != null) {          // тиммейты: зелёные метки
+            for (String nm : Nav.team) {
+                PlayerEntity o = Nav.find(mc, nm);
+                if (o == null || o == p) continue;
+                float rel = Nav.relAngle(p, o.getX(), o.getZ());
+                if (Math.abs(rel) < 58f) ctx.fill((int) (w / 2f + rel * (w / 120f)) - 1, 19, (int) (w / 2f + rel * (w / 120f)) + 2, 23, 0xFF55FF55);
+            }
+        }
+        if (Modules.WAYPOINTS.enabled) {                                  // точки: жёлтые метки
+            String dim = Nav.dimOf(mc);
+            for (Nav.Wp wp : Nav.wps) {
+                if (!wp.dim.equals(dim)) continue;
+                float rel = Nav.relAngle(p, wp.x, wp.z);
+                if (Math.abs(rel) < 58f) ctx.fill((int) (w / 2f + rel * (w / 120f)) - 1, 19, (int) (w / 2f + rel * (w / 120f)) + 2, 23, Nav.wpColor(wp.name));
+            }
+        }
         end(ctx);
+    }
+
+    /** Team Tracker: тиммейты рядом с расстоянием, стрелкой и координатами (только те, кого видит клиент). */
+    private static float team(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity p, float y) {
+        int n = Math.min(6, Nav.team.size());
+        if (n == 0) return y;
+        int w = 148;
+        int h = 15 + n * 11 + 3;
+        begin(ctx, 6, y);
+        box(ctx, 0, 0, w, h);
+        ctx.drawText(tr, Lang.t("Team"), 6, 3, Theme.accent(), true);
+        int yy = 15;
+        for (int i = 0; i < n; i++) {
+            String name = Nav.team.get(i);
+            PlayerEntity o = Nav.find(mc, name);
+            String shown = tr.trimToWidth(name, 50);
+            if (o == null || o == p) {
+                ctx.drawText(tr, shown, 6, yy, Theme.TEXT_DIM, true);
+                ctx.drawText(tr, "--", w - 6 - tr.getWidth("--"), yy, Theme.TEXT_DIM, true);
+            } else {
+                int d = Math.round(p.distanceTo(o));
+                String right = d + "m " + Nav.arrow(Nav.relAngle(p, o.getX(), o.getZ()));
+                ctx.drawText(tr, shown, 6, yy, Theme.TEXT, true);
+                ctx.drawText(tr, (int) o.getX() + " " + (int) o.getY() + " " + (int) o.getZ(), 6 + tr.getWidth(shown) + 6, yy, Theme.TEXT_DIM, true);
+                ctx.drawText(tr, right, w - 6 - tr.getWidth(right), yy, Theme.accent(), true);
+            }
+            yy += 11;
+        }
+        end(ctx);
+        return y + h * S() + 4;
+    }
+
+    /** Waypoints: ближайшие точки этого измерения со стрелкой и расстоянием. */
+    private static float waypoints(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity p, float y) {
+        String dim = Nav.dimOf(mc);
+        int n = 0;
+        for (Nav.Wp w : Nav.wps) if (w.dim.equals(dim)) n++;
+        if (n == 0) return y;
+        n = Math.min(4, n);
+        int w0 = 136;
+        int h = 15 + n * 11 + 3;
+        begin(ctx, 6, y);
+        box(ctx, 0, 0, w0, h);
+        ctx.drawText(tr, Lang.t("Waypoints"), 6, 3, Theme.accent(), true);
+        int yy = 15, shown = 0;
+        for (int i = Nav.wps.size() - 1; i >= 0 && shown < n; i--) {          // новые точки сверху
+            Nav.Wp w = Nav.wps.get(i);
+            if (!w.dim.equals(dim)) continue;
+            double dx = w.x - p.getX(), dz = w.z - p.getZ();
+            String right = (int) Math.sqrt(dx * dx + dz * dz) + "m " + Nav.arrow(Nav.relAngle(p, w.x, w.z));
+            ctx.drawText(tr, tr.trimToWidth(w.name, 62), 6, yy, Theme.TEXT, true);
+            ctx.drawText(tr, right, w0 - 6 - tr.getWidth(right), yy, Nav.wpColor(w.name), true);
+            yy += 11;
+            shown++;
+        }
+        end(ctx);
+        return y + h * S() + 4;
     }
 
     /** Список биндов слева под ватермаркой: меню, зум и включённые переключатели. */
     private static float binds(DrawContext ctx, MinecraftClient mc, TextRenderer tr) {
-        List<String[]> rows = new ArrayList<>();
+        List<String[]> rows = BIND_ROWS;
+        rows.clear();
         rows.add(new String[] { "Menu", NeonComfort.menuKeyLabel() });
         if (Modules.ZOOM.enabled) rows.add(new String[] { "Zoom", NeonComfort.zoomKeyLabel() });
-        if (Modules.FULLBRIGHT.enabled) rows.add(new String[] { "Fullbright", "ON" });
-        if (Modules.AUTOSPRINT.enabled) rows.add(new String[] { "Auto Sprint", "ON" });
-        if (Modules.NO_HURT_CAM.enabled) rows.add(new String[] { "No Hurt Cam", "ON" });
-        if (Modules.LOW_FIRE.enabled) rows.add(new String[] { "Low Fire", "ON" });
+        if (Modules.FULLBRIGHT.enabled) rows.add(R_FULL);
+        if (Modules.AUTOSPRINT.enabled) rows.add(R_SPRINT);
+        if (Modules.NO_HURT_CAM.enabled) rows.add(R_HURT);
+        if (Modules.LOW_FIRE.enabled) rows.add(R_FIRE);
         int w = tr.getWidth(Lang.t("Binds")) + 40;
         for (String[] r : rows) w = Math.max(w, tr.getWidth(Lang.t(r[0])) + tr.getWidth(Lang.t(r[1])) + 24);
         int h = 15 + rows.size() * 11 + 3;
@@ -465,11 +627,11 @@ public final class Hud {
     /** общий масштаб HUD (0.8 = на 20% меньше) */
     private static final float[] HUD_SCALES = { 0.8f, 0.7f, 0.9f, 1.0f, 1.2f };
 
-    private static float S() {
+    static float S() {
         return HUD_SCALES[Modules.HUD_SIZE.index % HUD_SCALES.length];
     }
 
-    private static void begin(DrawContext ctx, float ax, float ay) {
+    static void begin(DrawContext ctx, float ax, float ay) {
         MatrixStack m = ctx.getMatrices();
         m.push();
         m.translate(ax, ay, 0f);
@@ -477,26 +639,35 @@ public final class Hud {
         m.scale(sc, sc, 1f);
     }
 
-    private static void end(DrawContext ctx) {
+    static void end(DrawContext ctx) {
         ctx.getMatrices().pop();
     }
 
-    private static void box(DrawContext ctx, int x, int y, int w, int h) {
+    static void box(DrawContext ctx, int x, int y, int w, int h) {
         ctx.fill(x, y, x + w, y + h, Theme.BG);
         ctx.fill(x, y, x + 2, y + h, Theme.pulsingAccent());
     }
 
+    private static String wmText = "";
+    private static long wmAt = 0L;
+
     private static void watermark(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity p) {
-        StringBuilder sb = new StringBuilder("NeonComfort v" + NeonComfort.VERSION + "  |  ").append(mc.getCurrentFps()).append(" FPS");
-        if (Modules.PING_TIME.enabled) {
-            int ping = 0;
-            if (mc.getNetworkHandler() != null) {
-                PlayerListEntry e = mc.getNetworkHandler().getPlayerListEntry(p.getUuid());
-                if (e != null) ping = e.getLatency();
+        long now = System.currentTimeMillis();
+        if (wmText.isEmpty() || now - wmAt > 500L) {          // строка меняется не чаще 2 раз в секунду
+            wmAt = now;
+            StringBuilder sb = new StringBuilder("NeonComfort v" + NeonComfort.VERSION + "  |  ").append(mc.getCurrentFps()).append(" FPS");
+            if (Modules.PING_TIME.enabled) {
+                int ping = 0;
+                if (mc.getNetworkHandler() != null) {
+                    PlayerListEntry e = mc.getNetworkHandler().getPlayerListEntry(p.getUuid());
+                    if (e != null) ping = e.getLatency();
+                }
+                sb.append("  |  ").append(ping).append(" ms  |  ").append(LocalTime.now().format(TIME));
             }
-            sb.append("  |  ").append(ping).append(" ms  |  ").append(LocalTime.now().format(TIME));
+            if (Modules.MOD_TIME.enabled) sb.append("  |  ").append(Perf.report());
+            wmText = sb.toString();
         }
-        String s = sb.toString();
+        String s = wmText;
         int w = tr.getWidth(s) + 12;
         begin(ctx, 6, 6);
         box(ctx, 0, 0, w, 16);
@@ -541,14 +712,18 @@ public final class Hud {
     /** Броня ближайших игроков (до 3, в радиусе 32 блоков). */
     private static void nearby(DrawContext ctx, MinecraftClient mc, TextRenderer tr, ClientPlayerEntity self) {
         if (mc.world == null) return;
-        List<PlayerEntity> list = new ArrayList<>();
-        for (PlayerEntity o : mc.world.getPlayers()) {
-            if (o == self || o.isSpectator()) continue;
-            if (self.distanceTo(o) <= 32f) list.add(o);
+        List<PlayerEntity> list = NEAR_LIST;
+        if (nearFrame++ % 6 == 0) {                            // список игроков пересобираем раз в 6 кадров
+            list.clear();
+            for (PlayerEntity o : mc.world.getPlayers()) {
+                if (o == self || o.isSpectator()) continue;
+                if (self.distanceTo(o) <= 32f) list.add(o);
+            }
+            list.sort(Comparator.comparingDouble(self::distanceTo));
+            while (list.size() > 3) list.remove(list.size() - 1);
         }
+        list.removeIf(PlayerEntity::isRemoved);
         if (list.isEmpty()) return;
-        list.sort(Comparator.comparingDouble(self::distanceTo));
-        if (list.size() > 3) list = list.subList(0, 3);
 
         int blockH = 36, gap = 4;
         int total = list.size() * (blockH + gap) - gap;
@@ -567,7 +742,8 @@ public final class Hud {
                     ctx.fill(ix, y + 14, ix + 16, y + 30, 0x22FFFFFF);
                     continue;
                 }
-                ctx.drawItem(st, ix, y + 14);
+                ctx.fill(ix, y + 14, ix + 16, y + 30, matColor(st));           // плитка цвета материала вместо иконки
+                ctx.drawText(tr, SLOT_LETTERS[j], ix + 5, y + 19, 0xFF101018, false);
                 if (st.getMaxDamage() > 0) {
                     int left = st.getMaxDamage() - st.getDamage();
                     int pct = left * 100 / st.getMaxDamage();

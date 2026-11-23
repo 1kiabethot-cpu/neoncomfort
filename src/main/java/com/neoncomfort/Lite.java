@@ -17,7 +17,7 @@ public final class Lite {
         List<Modules.Module> res = new ArrayList<>();
         for (int pg = 1; pg < Modules.PAGES.size(); pg++) {
             for (Modules.Module m : Modules.PAGES.get(pg)) {
-                if (m == Modules.FPS_BOOST || keepHud(m)) continue;
+                if (m == Modules.FPS_BOOST || keepHud(m) || isNav(m)) continue;
                 if (!m.isOption() || m.zeroIsOff) res.add(m);
             }
         }
@@ -44,6 +44,13 @@ public final class Lite {
             if (m.isOption()) m.index = 0;
             else m.enabled = false;
         }
+    }
+
+    private static boolean isNav(Modules.Module m) {
+        return m == Modules.TEAM_TRACKER || m == Modules.TEAM_ADD || m == Modules.TEAM_CLEAR
+                || m == Modules.WAYPOINTS || m == Modules.WP_ADD || m == Modules.WP_CLEAR
+                || m == Modules.WP_SHARE || m == Modules.PARTICLE_MODE
+                || m == Modules.STREAMER || m == Modules.ARMOR_WARN || m == Modules.ITEM_COUNTER || m == Modules.COMFORT;
     }
 
     private static boolean cleared(Modules.Module m) {

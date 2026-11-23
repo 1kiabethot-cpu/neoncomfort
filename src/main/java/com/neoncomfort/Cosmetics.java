@@ -47,7 +47,15 @@ public class Cosmetics implements ClientModInitializer {
     static final ModelPart RINGS = buildRings();
     static final int SLASH_SEGS = 16;
     static final ModelPart SLASH = buildSlash();
+    static final ModelPart BACK = buildBack();
     static final int TAIL_SEGS = 14;
+    private static final float[] CAPE_Y = new float[12];
+    private static final float[] CAPE_Z = new float[12];
+    private static final float[] TAIL_X = new float[20];
+    private static final float[] TAIL_Y = new float[20];
+    private static final float[] TAIL_Z = new float[20];
+    private static final float[][] OV1 = new float[4][3];
+    private static final float[][] OV2 = new float[4][3];
     private static float orbitAngle = 0f;    // текущий угол вращения клинков
     private static long orbitLastNs = 0L;
     private static float tailLean = 0f;     // сглаженный наклон хвоста назад
@@ -108,6 +116,29 @@ public class Cosmetics implements ClientModInitializer {
     }
 
     /** Сегменты полумесяца для Slash FX: тонкие плоские пластины, берут пиксели из белой области (0,113). */
+    /** Предметы на спине: 1 рюкзак, 2 сагайдак со стрелами, 3 катана в ножнах. Цвета берутся из cosmetics.png (y >= 192). */
+    private static ModelPart buildBack() {
+        ModelData data = new ModelData();
+        ModelPartData root = data.getRoot();
+        ModelPartData b1 = root.addChild("b1", ModelPartBuilder.create(), ModelTransform.NONE);
+        b1.addChild("pack", ModelPartBuilder.create().uv(0, 192).cuboid(-3.5f, 1f, 2.2f, 7f, 8f, 3f), ModelTransform.NONE);
+        b1.addChild("strap", ModelPartBuilder.create().uv(56, 192).cuboid(-3.6f, 5f, 2.1f, 7.2f, 1.2f, 3.2f), ModelTransform.NONE);
+        b1.addChild("flap", ModelPartBuilder.create().uv(56, 192).cuboid(-3.6f, 1f, 2.1f, 7.2f, 1f, 3.2f), ModelTransform.NONE);
+        ModelPartData b2 = root.addChild("b2", ModelPartBuilder.create(), ModelTransform.NONE);
+        ModelTransform q = ModelTransform.of(2.5f, 5f, 3.7f, 0f, 0f, 0.30f);
+        b2.addChild("quiver", ModelPartBuilder.create().uv(0, 208).cuboid(-1.5f, -5f, -1.5f, 3f, 10f, 3f), q);
+        for (int i = 0; i < 3; i++) {
+            b2.addChild("arrow" + i, ModelPartBuilder.create().uv(56, 208).cuboid(-0.4f + (i - 1) * 0.9f, -9f, -0.4f, 0.8f, 4f, 0.8f), q);
+        }
+        ModelPartData b3 = root.addChild("b3", ModelPartBuilder.create(), ModelTransform.NONE);
+        ModelTransform k = ModelTransform.of(0f, 6f, 3.2f, 0f, 0f, 0.85f);
+        b3.addChild("sheath", ModelPartBuilder.create().uv(0, 224).cuboid(-0.7f, -8f, -0.7f, 1.4f, 20f, 1.4f), k);
+        b3.addChild("guard", ModelPartBuilder.create().uv(56, 224).cuboid(-1.6f, -8.8f, -1.6f, 3.2f, 0.8f, 3.2f), k);
+        b3.addChild("grip", ModelPartBuilder.create().uv(0, 224).cuboid(-0.55f, -13.8f, -0.55f, 1.1f, 5f, 1.1f), k);
+        b3.addChild("pommel", ModelPartBuilder.create().uv(56, 224).cuboid(-0.8f, -14.6f, -0.8f, 1.6f, 0.8f, 1.6f), k);
+        return TexturedModelData.of(data, 128, 256).createModel();
+    }
+
     private static ModelPart buildSlash() {
         ModelData data = new ModelData();
         ModelPartData root = data.getRoot();
@@ -475,10 +506,21 @@ public class Cosmetics implements ClientModInitializer {
             .overlay(OverlayTexture.DEFAULT_UV).light(FULL_LIGHT).normal(0f, 1f, 0f);
     }
 
-    /** вершина плаща с текстурными координатами (атлас cape.png 256x128) */
-    private static void tvt(VertexConsumer vc, Matrix4f mat, float x, float y, float z, float u, float v, int light) {
-        vc.vertex(mat, x / 16f, y / 16f, z / 16f).color(255, 255, 255, 255).texture(u / 256f, v / 192f)
+    /** вершина плаща: текстурные координаты в атласе cape.png (256x1024) и оттенок ткани (складки) */
+    private static void tvt(VertexConsumer vc, Matrix4f mat, float x, float y, float z, float u, float v, int light, float shade) {
+        int c = (int) (255f * Math.max(0.55f, Math.min(1.05f, shade)));
+        c = Math.min(255, c);
+        vc.vertex(mat, x / 16f, y / 16f, z / 16f).color(c, c, c, 255).texture(u / 256f, v / 1024f)
             .overlay(OverlayTexture.DEFAULT_UV).light(light).normal(0f, 0f, 1f);
+    }
+
+    /** смещение по глубине для складок: сильнее к низу плаща */
+    private static float fold(float s, float k, float t) {
+        return 0.6f * (float) Math.sin(s * Math.PI * 3.0 + k * 1.4 + t) * (0.25f + k);
+    }
+
+    private static float shade(float s, float k, float t) {
+        return 0.90f + 0.10f * (float) Math.cos(s * Math.PI * 3.0 + k * 1.4 + t);
     }
 
     /**
@@ -499,8 +541,8 @@ public class Cosmetics implements ClientModInitializer {
         float length = style == NEON_CAPE ? 22f : 18f;
         float step = length / n;
         float width = style == NEON_CAPE ? 12f : 11f;
-        float[] cy = new float[n + 1];
-        float[] cz = new float[n + 1];
+        float[] cy = CAPE_Y;
+        float[] cz = CAPE_Z;
         cy[0] = 0.4f;
         cz[0] = 2.3f;
         for (int i = 0; i < n; i++) {
@@ -534,32 +576,36 @@ public class Cosmetics implements ClientModInitializer {
             }
             return;
         }
-        // рисованный плащ: внешний слой с рисунком и внутренний тёмный слой (чтобы не просвечивало спереди)
-        int idx = style - 1;                                  // 0..16: нарисованные плащи
-        float u0, v0;                                         // область рисунка 40x64 в cape.png
-        if (idx < 5) {
-            u0 = idx * 40f;
-            v0 = 0f;
-        } else {
-            int j = idx - 5;
-            u0 = (j % 6) * 40f;
-            v0 = 64f * (1 + j / 6);
-        }
+        // рисованный плащ: внешний слой с рисунком (складки и оттенки ткани) и внутренний тёмный слой
+        int idx = style - 1;                                   // 0..16
+        float u0 = (idx % 3) * 80f, v0 = (idx / 3) * 128f;     // область рисунка 80x128 в cape.png
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEntityCutoutNoCull(CAPE_TEX));
+        int cols = 6;
+        float ft = age * 0.05f;
         for (int layer = 0; layer < 2; layer++) {
             float dz = layer == 0 ? 0f : 0.35f;               // внешний слой чуть дальше от тела
             for (int i = 0; i < n; i++) {
                 float k0 = i / (float) n, k1 = (i + 1) / (float) n;
                 float w0 = width * (1f + 0.10f * k0) * 0.5f, w1 = width * (1f + 0.10f * k1) * 0.5f;
-                float ua = layer == 0 ? 208f : u0, ub = layer == 0 ? 224f : u0 + 40f;   // слева направо (на экране)
-                float va = layer == 0 ? 0f : v0 + 64f * k0, vb = layer == 0 ? 16f : v0 + 64f * k1;
-                if (layer == 0) { va = 0f; vb = 16f; }
-                tvt(vc, mat, w0, cy[i], cz[i] + dz, ua, va, light);
-                tvt(vc, mat, -w0, cy[i], cz[i] + dz, ub, va, light);
-                tvt(vc, mat, -w1, cy[i + 1], cz[i + 1] + dz, ub, vb, light);
-                tvt(vc, mat, w1, cy[i + 1], cz[i + 1] + dz, ua, vb, light);
+                for (int c = 0; c < cols; c++) {
+                    float s0 = c / (float) cols, s1 = (c + 1) / (float) cols;
+                    float xa0 = w0 - 2f * w0 * s0, xb0 = w0 - 2f * w0 * s1;
+                    float xa1 = w1 - 2f * w1 * s0, xb1 = w1 - 2f * w1 * s1;
+                    float ua = layer == 0 ? 240f : u0 + 80f * s0, ub = layer == 0 ? 256f : u0 + 80f * s1;
+                    float va = layer == 0 ? 0f : v0 + 128f * k0, vb = layer == 0 ? 16f : v0 + 128f * k1;
+                    tvt(vc, mat, xa0, cy[i], cz[i] + dz + fold(s0, k0, ft), ua, va, light, shade(s0, k0, ft));
+                    tvt(vc, mat, xb0, cy[i], cz[i] + dz + fold(s1, k0, ft), ub, va, light, shade(s1, k0, ft));
+                    tvt(vc, mat, xb1, cy[i + 1], cz[i + 1] + dz + fold(s1, k1, ft), ub, vb, light, shade(s1, k1, ft));
+                    tvt(vc, mat, xa1, cy[i + 1], cz[i + 1] + dz + fold(s0, k1, ft), ua, vb, light, shade(s0, k1, ft));
+                }
             }
         }
+    }
+
+    private static void set(float[] a, float x, float y, float z) {
+        a[0] = x;
+        a[1] = y;
+        a[2] = z;
     }
 
     /** Orbit Blades: светящиеся клинки кружатся вокруг тела; при беге вращаются быстрее. */
@@ -593,11 +639,16 @@ public class Cosmetics implements ClientModInitializer {
                 float hh = pass == 0 ? 3.6f : 2.2f;
                 int al = pass == 0 ? 70 : 230;
                 // два ромба-клинка: вертикальный и горизонтальный (вместе дают объём)
-                float[][] v1 = { { cx + tx * len, cy, cz + tz * len }, { cx, cy - hh, cz },
-                                 { cx - tx * tail, cy, cz - tz * tail }, { cx, cy + hh, cz } };
-                float[][] v2 = { { cx + tx * len, cy, cz + tz * len }, { cx + rx * hh, cy, cz + rz * hh },
-                                 { cx - tx * tail, cy, cz - tz * tail }, { cx - rx * hh, cy, cz - rz * hh } };
-                for (float[][] v : new float[][][] { v1, v2 }) {
+                set(OV1[0], cx + tx * len, cy, cz + tz * len);
+                set(OV1[1], cx, cy - hh, cz);
+                set(OV1[2], cx - tx * tail, cy, cz - tz * tail);
+                set(OV1[3], cx, cy + hh, cz);
+                set(OV2[0], cx + tx * len, cy, cz + tz * len);
+                set(OV2[1], cx + rx * hh, cy, cz + rz * hh);
+                set(OV2[2], cx - tx * tail, cy, cz - tz * tail);
+                set(OV2[3], cx - rx * hh, cy, cz - rz * hh);
+                for (int q = 0; q < 2; q++) {
+                    float[][] v = q == 0 ? OV1 : OV2;
                     for (int i = 0; i < 4; i++) tv(vc, mat, v[i][0], v[i][1], v[i][2], r, g, b, al);
                     for (int i = 3; i >= 0; i--) tv(vc, mat, v[i][0], v[i][1], v[i][2], r, g, b, al);
                 }
@@ -625,9 +676,10 @@ public class Cosmetics implements ClientModInitializer {
         float dx = (float) Math.cos(yaw);
         float dz = (float) -Math.sin(yaw);                // направление ширины ленты
         // центральная линия ленты (в системе тела, пиксели)
-        float[] cx = new float[n + 1];
-        float[] cy = new float[n + 1];
-        float[] cz = new float[n + 1];
+        float[] cx = TAIL_X;
+        float[] cy = TAIL_Y;
+        float[] cz = TAIL_Z;
+        cx[0] = 0f;
         cy[0] = -9f;
         cz[0] = 2.9f;
         for (int i = 0; i < n; i++) {
@@ -703,7 +755,8 @@ public class Cosmetics implements ClientModInitializer {
             int tail = Modules.TAIL.index;
             int orbit = Modules.ORBIT.index;
             int cape = Modules.CAPE.index;
-            if (wing <= 0 && hat <= 0 && cubes <= 0 && rings <= 0 && slash <= 0 && tail <= 0 && orbit <= 0 && cape <= 0) return;
+            int back = Modules.BACK.index;
+            if (wing <= 0 && hat <= 0 && cubes <= 0 && rings <= 0 && slash <= 0 && tail <= 0 && orbit <= 0 && cape <= 0 && back <= 0) return;
 
             PlayerEntityModel model = getContextModel();
             VertexConsumer vc = vertexConsumers.getBuffer(RenderLayer.getEntityCutoutNoCull(TEX));
@@ -742,8 +795,13 @@ public class Cosmetics implements ClientModInitializer {
                 float flapA = fl == 3 ? 0f : (float) Math.sin(state.age * 0.15f * flapSpeed) * 0.14f;
                 matrices.push();
                 model.body.rotate(matrices);
-                NeonWings.render(matrices, vertexConsumers, wing - WING_STYLES, state.age, flapA, flapSpeed,
-                        mulSize(Modules.WING_SIZE));
+                int ns = wing - WING_STYLES;
+                if (ns <= 5) {
+                    NeonWings.render(matrices, vertexConsumers, ns, state.age, flapA, flapSpeed, mulSize(Modules.WING_SIZE));
+                } else {
+                    TexWings.render(matrices, vertexConsumers, ns - 5, state.age, flapA, flapSpeed,
+                            mulSize(Modules.WING_SIZE), light);
+                }
                 matrices.pop();
             }
 
@@ -766,6 +824,14 @@ public class Cosmetics implements ClientModInitializer {
                 matrices.push();
                 model.body.rotate(matrices);
                 renderTail(matrices, vertexConsumers, state.age, tail);
+                matrices.pop();
+            }
+
+            if (back > 0 && back <= 3) {
+                for (int i = 1; i <= 3; i++) BACK.getChild("b" + i).visible = (i == back);
+                matrices.push();
+                model.body.rotate(matrices);
+                BACK.render(matrices, vc, light, OverlayTexture.DEFAULT_UV);
                 matrices.pop();
             }
 
