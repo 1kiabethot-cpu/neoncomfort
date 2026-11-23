@@ -7,6 +7,7 @@
   "authors": ["You"],
   "license": "MIT",
   "environment": "client",
+  "mixins": ["neoncomfort.mixins.json"],
   "entrypoints": {
     "client": ["com.neoncomfort.NeonComfort", "com.neoncomfort.Cosmetics", "com.neoncomfort.CosmeticsFx"]
   },
