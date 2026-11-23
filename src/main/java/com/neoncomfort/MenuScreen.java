@@ -379,7 +379,10 @@ public class MenuScreen extends Screen {
         ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(Lang.t("Tap: choose | drag: scroll | right click: back")),
                 x + w / 2, y + h - FOOT + 3, Theme.TEXT_DIM);
 
-        if (pop) renderPopup(ctx, mouseX, mouseY, nowMs, acc);
+        if (pop) {
+            ctx.draw();   // выгрузить текст меню ДО окна выбора, иначе он рисуется поверх него
+            renderPopup(ctx, mouseX, mouseY, nowMs, acc);
+        }
         ms.pop();
     }
 
