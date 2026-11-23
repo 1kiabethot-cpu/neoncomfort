@@ -1,0 +1,15 @@
+{
+  "required": false,
+  "minVersion": "0.8",
+  "package": "com.neoncomfort.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "HeldItemMixin",
+    "OverlayMixin",
+    "WorldColorMixin",
+    "WeatherMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 0
+  }
+}
