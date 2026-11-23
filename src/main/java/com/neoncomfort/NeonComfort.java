@@ -296,20 +296,24 @@ public class NeonComfort implements ClientModInitializer {
 
     // ---- Particle Filter: меняет ванильную настройку частиц (Менше / Минимум) и возвращает прежнюю при OFF ----
     private int lastPm = -1;
-    private net.minecraft.client.option.ParticlesMode origPm = null;
+    private Object origPm = null;
 
+    @SuppressWarnings({"unchecked", "rawtypes"})
     private void handleParticleFilter(MinecraftClient mc) {
         int i = Modules.PARTICLE_MODE.index;
         if (i == lastPm) return;
         lastPm = i;
+        net.minecraft.client.option.SimpleOption opt = mc.options.getParticles();
         if (i == 0) {
-            if (origPm != null) mc.options.getParticles().setValue(origPm);
+            if (origPm != null) opt.setValue(origPm);
             origPm = null;
             return;
         }
-        if (origPm == null) origPm = mc.options.getParticles().getValue();
-        mc.options.getParticles().setValue(i == 1 ? net.minecraft.client.option.ParticlesMode.DECREASED
-                : net.minecraft.client.option.ParticlesMode.MINIMAL);
+        Object cur = opt.getValue();
+        if (origPm == null) origPm = cur;
+        // ALL, DECREASED, MINIMAL (порядок enum) -> 1 = Меньше, 2 = Минимум
+        Object[] vals = ((Enum) cur).getDeclaringClass().getEnumConstants();
+        opt.setValue(vals[Math.min(i, vals.length - 1)]);
     }
 
     // ---- Sound Mixer: громкость групп звуков (Default = не трогать, прежнее значение возвращается) ----
