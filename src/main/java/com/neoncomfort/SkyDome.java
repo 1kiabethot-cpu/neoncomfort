@@ -26,8 +26,9 @@ public final class SkyDome {
     };
     /** насколько небо видно днём (0 = только ночью): Synthwave слегка, Sunset заметно */
     private static final float[] DAY = { 0f, 0f, 0f, 0.20f, 0f, 0.42f };
-    private static final int LON = 64;
-    private static final int LAT = 24;
+    private static final int LON = 36;
+    private static final int LAT = 12;
+    private static final float[] SN = new float[LON + 1], CS = new float[LON + 1];
 
     private static void v(VertexConsumer vc, Matrix4f m, float x, float y, float z, float u, float tv, int a) {
         vc.vertex(m, x, y, z).color(255, 255, 255, a).texture(u, tv)
@@ -59,21 +60,27 @@ public final class SkyDome {
         float drift = (float) ((System.nanoTime() / 1.0e9) * 0.0015 * Math.PI * 2.0);   // очень медленно, без рывков
         Matrix4f mat = ms.peek().getPositionMatrix();
         VertexConsumer vc = vcp.getBuffer(RenderLayer.getEyes(TEX[mode - 1]));
+        // sin/cos колонок считаем один раз за кадр (раньше — по 4 раза на каждый квад)
+        int lon = Perf.reduced() ? LON / 2 : LON;
+        for (int j = 0; j <= lon; j++) {
+            float az = j / (float) lon * (float) (Math.PI * 2.0) + drift;
+            SN[j] = (float) Math.sin(az);
+            CS[j] = (float) Math.cos(az);
+        }
         for (int i = 0; i < LAT; i++) {
             float t0 = i / (float) LAT, t1 = (i + 1) / (float) LAT;
-            float e0 = (float) Math.toRadians(-6.0 + 96.0 * t0), e1 = (float) Math.toRadians(-6.0 + 96.0 * t1);
-            float c0 = (float) Math.cos(e0), s0 = (float) Math.sin(e0), c1 = (float) Math.cos(e1), s1 = (float) Math.sin(e1);
+            double d0 = -6.0 + 96.0 * t0, d1 = -6.0 + 96.0 * t1;
+            float e0 = (float) Math.toRadians(d0), e1 = (float) Math.toRadians(d1);
+            float c0 = r * (float) Math.cos(e0), y0 = r * (float) Math.sin(e0);
+            float c1 = r * (float) Math.cos(e1), y1 = r * (float) Math.sin(e1);
             // у горизонта небо гаснет, чтобы не заливать далёкую землю
-            int a0 = (int) (255f * amt * smooth((float) ((Math.toDegrees(e0) - 3.0) / 28.0)));
-            int a1 = (int) (255f * amt * smooth((float) ((Math.toDegrees(e1) - 3.0) / 28.0)));
-            for (int j = 0; j < LON; j++) {
-                float u0 = j / (float) LON, u1 = (j + 1) / (float) LON;
-                float az0 = u0 * (float) (Math.PI * 2.0) + drift, az1 = u1 * (float) (Math.PI * 2.0) + drift;
-                float x00 = r * c0 * (float) Math.sin(az0), z00 = r * c0 * (float) Math.cos(az0), y0 = r * s0;
-                float x01 = r * c0 * (float) Math.sin(az1), z01 = r * c0 * (float) Math.cos(az1);
-                float x10 = r * c1 * (float) Math.sin(az0), z10 = r * c1 * (float) Math.cos(az0), y1 = r * s1;
-                float x11 = r * c1 * (float) Math.sin(az1), z11 = r * c1 * (float) Math.cos(az1);
-                float v0 = 1f - t0, v1 = 1f - t1;
+            int a0 = (int) (255f * amt * smooth((float) ((d0 - 3.0) / 28.0)));
+            int a1 = (int) (255f * amt * smooth((float) ((d1 - 3.0) / 28.0)));
+            float v0 = 1f - t0, v1 = 1f - t1;
+            for (int j = 0; j < lon; j++) {
+                float u0 = j / (float) lon, u1 = (j + 1) / (float) lon;
+                float x00 = c0 * SN[j], z00 = c0 * CS[j], x01 = c0 * SN[j + 1], z01 = c0 * CS[j + 1];
+                float x10 = c1 * SN[j], z10 = c1 * CS[j], x11 = c1 * SN[j + 1], z11 = c1 * CS[j + 1];
                 v(vc, mat, x00, y0, z00, u0, v0, a0);
                 v(vc, mat, x01, y0, z01, u1, v0, a0);
                 v(vc, mat, x11, y1, z11, u1, v1, a1);

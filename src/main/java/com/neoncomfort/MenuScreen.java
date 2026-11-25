@@ -359,11 +359,11 @@ public class MenuScreen extends Screen {
                     cx += 12;
                 }
                 int vc = 0xFF000000 | FxColor.lerp(0xA9A9C4, 0xFFFFFF, Math.max(t, hover ? 1f : 0f));
-                ctx.drawText(textRenderer, st, cx, ty, vc, true);
+                if (!pop) ctx.drawText(textRenderer, st, cx, ty, vc, true);
                 if (multi) chevron(ctx, pillX + pillW - 7, ry + ROW / 2 - 1, 0xFFA9A9C4);
                 valueLeft = pillX;
             }
-            ctx.drawText(textRenderer, textRenderer.trimToWidth(Lang.t(m.name), Math.max(10, valueLeft - lx0 - 16)),
+            if (!pop) ctx.drawText(textRenderer, textRenderer.trimToWidth(Lang.t(m.name), Math.max(10, valueLeft - lx0 - 16)),
                     lx0 + 9, ty, Theme.TEXT, true);
         }
         ctx.disableScissor();
@@ -376,7 +376,7 @@ public class MenuScreen extends Screen {
             rr(ctx, lx1 - 3, by, 3, barH, a(1f, acc));
         }
 
-        ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(Lang.t("Tap: choose | drag: scroll | right click: back")),
+        if (!pop) ctx.drawCenteredTextWithShadow(textRenderer, Text.literal(Lang.t("Tap: choose | drag: scroll | right click: back")),
                 x + w / 2, y + h - FOOT + 3, Theme.TEXT_DIM);
 
         if (pop) {

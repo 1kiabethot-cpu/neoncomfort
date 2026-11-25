@@ -83,12 +83,27 @@ public final class WorldVisuals {
         uZ = -dy * rX;
     }
 
+    private static final float[][] CT = new float[129][], ST_ = new float[129][];
+
+    private static void trig(int segs) {
+        if (CT[segs] != null) return;
+        float[] c = new float[segs + 1], sn = new float[segs + 1];
+        for (int k = 0; k <= segs; k++) {
+            c[k] = (float) Math.cos(k * TAU / segs);
+            sn[k] = (float) Math.sin(k * TAU / segs);
+        }
+        CT[segs] = c;
+        ST_[segs] = sn;
+    }
+
     /** мягкий диск/свечение: от центра (rgbIn, aIn) к краю (rgbOut, aOut) */
     private static void fan(float cx, float cy, float cz, float rad, int rgbIn, float aIn, int rgbOut, float aOut, int segs) {
         if (aIn <= 0.004f && aOut <= 0.004f) return;
+        if (segs > 128) segs = 128;
+        trig(segs);
+        float[] C = CT[segs], S = ST_[segs];
         for (int k = 0; k < segs; k++) {
-            float a0 = k * TAU / segs, a1 = (k + 1) * TAU / segs;
-            float c0 = (float) Math.cos(a0), s0 = (float) Math.sin(a0), c1 = (float) Math.cos(a1), s1 = (float) Math.sin(a1);
+            float c0 = C[k], s0 = S[k], c1 = C[k + 1], s1 = S[k + 1];
             set(0, cx, cy, cz, rgbIn, aIn);
             set(1, cx + (rX * c0 + uX * s0) * rad, cy + (rY * c0 + uY * s0) * rad, cz + (rZ * c0 + uZ * s0) * rad, rgbOut, aOut);
             set(2, cx + (rX * c1 + uX * s1) * rad, cy + (rY * c1 + uY * s1) * rad, cz + (rZ * c1 + uZ * s1) * rad, rgbOut, aOut);
@@ -194,11 +209,13 @@ public final class WorldVisuals {
         if (Perf.reduced()) n /= 2;
         float ct = (float) Math.cos(th), st = (float) Math.sin(th);
         boolean calm = Modules.COMFORT.enabled;
+        net.minecraft.util.math.Vec3d lk = MinecraftClient.getInstance().player.getRotationVec(1f);
         for (int i = 0; i < n; i++) {
             float x = SX[i] * ct - SY[i] * st;                              // небо вращается вокруг оси Z, как в игре
             float y = SX[i] * st + SY[i] * ct;
             float z = SZ[i];
             if (y < 0.06f) continue;
+            if (x * lk.x + y * lk.y + z * lk.z < 0.15f) continue;            // звезда далеко за пределами экрана
             float a = base * smooth((y - 0.06f) / 0.25f) * (0.45f + 0.55f * SS[i]);
             if (!calm) a *= 0.82f + 0.18f * (float) Math.sin(now / 700.0 + i * 1.7);
             if (a < 0.03f) continue;
